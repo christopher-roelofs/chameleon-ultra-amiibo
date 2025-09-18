@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE0 html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -35,7 +35,7 @@
             background-color: #cccccc;
             cursor: not-allowed;
         }
-        input[type="text"], input[type="number"] {
+        input[type="text"], input[type="number"], select {
             padding: 10px;
             font-size: 16px;
             border: 1px solid #ccc;
@@ -55,9 +55,16 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
+        #search-filter-sort-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
         #search-input {
-            width: calc(100% - 22px);
-            margin-bottom: 20px;
+            flex-grow: 1;
+            margin-bottom: 0;
         }
         #amiibo-list {
             display: grid;
@@ -101,21 +108,72 @@
             color: #555;
             margin: 0;
         }
+        /* Modal Styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto; /* Center the modal */
+            padding: 20px;
+            border: 1px solid #888;
+            border-radius: 10px;
+            width: 80%; /* Could be more responsive */
+            max-width: 700px;
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+            animation-name: animatetop;
+            animation-duration: 0.4s;
+            display: flex; /* Use flex for inner content */
+            flex-direction: column;
+            gap: 20px;
+        }
+        /* Add Animation */
+        @-webkit-keyframes animatetop {
+            from {top: -300px; opacity: 0}
+            to {top: 0; opacity: 1}
+        }
+        @keyframes animatetop {
+            from {top: -300px; opacity: 0}
+            to {top: 0; opacity: 1}
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
         #amiibo-info-and-actions {
             display: flex;
             flex-wrap: wrap;
             gap: 20px;
             width: 100%;
-            max-width: 1200px;
-            margin-bottom: 20px;
+            /* max-width: 1200px; */ /* Removed as it's now inside modal */
+            margin-bottom: 0; /* Removed as it's now inside modal */
         }
         #amiibo-details {
             flex: 2 1 400px; /* Allows it to grow and shrink, min-width 400px */
-            display: none;
+            display: block; /* Always block inside modal */
             background-color: #fff;
-            padding: 20px;
+            padding: 0; /* Padding handled by modal-content */
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: none; /* Shadow handled by modal-content */
             text-align: left;
         }
         #amiibo-details h3 {
@@ -150,11 +208,11 @@
         }
         #actions-container {
             flex: 1 1 300px; /* Allows it to grow and shrink, min-width 300px */
-            display: none;
+            display: block; /* Always block inside modal */
             background-color: #fff;
-            padding: 20px;
+            padding: 0; /* Padding handled by modal-content */
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: none; /* Shadow handled by modal-content */
             text-align: center;
         }
         #status {
@@ -196,8 +254,15 @@
         }
 
         @media (max-width: 768px) {
+            .modal-content {
+                width: 95%;
+            }
             #amiibo-list {
                 grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+            #search-filter-sort-container {
+                flex-direction: column;
+                align-items: stretch;
             }
             #amiibo-info-and-actions {
                 flex-direction: column;
@@ -213,37 +278,27 @@
     <h1>Chameleon Ultra Amiibo Emulator</h1>
     <button id="connect-btn">Connect to Chameleon Ultra</button>
 
-    <div id="amiibo-info-and-actions">
-        <div id="amiibo-details">
-            <h3>Selected Amiibo Details</h3>
-            <div id="amiibo-details-content">
-                <div id="amiibo-details-image-container">
-                    <img id="amiibo-details-image" src="" alt="Amiibo Image">
-                </div>
-                <div id="amiibo-details-info">
-                    <p><strong>Name:</strong> <span id="detail-name"></span></p>
-                    <p><strong>Amiibo Series:</strong> <span id="detail-amiibo-series"></span></p>
-                    <p><strong>Game Series:</strong> <span id="detail-game-series"></span></p>
-                    <p><strong>Release (NA):</strong> <span id="detail-release-na"></span></p>
-                    <p><strong>Release (EU):</strong> <span id="detail-release-eu"></span></p>
-                    <p><strong>Release (JP):</strong> <span id="detail-release-jp"></span></p>
-                    <p><strong>Release (AU):</strong> <span id="detail-release-au"></span></p>
-                </div>
-            </div>
-        </div>
-
-        <div id="actions-container">
-            <h3>Actions</h3>
-            <input type="number" id="slot-input" min="1" max="8" value="1">
-            <button id="write-btn">Write to Slot</button>
-            <button id="emulate-btn">Emulate</button>
-            <p id="status"></p>
-        </div>
-    </div>
-
     <div id="amiibo-browser">
         <h2>Select an Amiibo</h2>
-        <input type="text" id="search-input" placeholder="Search for an Amiibo...">
+        <div id="search-filter-sort-container">
+            <input type="text" id="search-input" placeholder="Search by name...">
+            <select id="game-series-filter">
+                <option value="">All Game Series</option>
+            </select>
+            <select id="amiibo-series-filter">
+                <option value="">All Amiibo Series</option>
+            </select>
+            <select id="character-filter">
+                <option value="">All Characters</option>
+            </select>
+            <select id="sort-by">
+                <option value="name-asc">Name (A-Z)</option>
+                <option value="name-desc">Name (Z-A)</option>
+                <option value="release-na-asc">Release (NA) Oldest First</option>
+                <option value="release-na-desc">Release (NA) Newest First</option>
+            </select>
+            <button id="clear-filters-sort">Clear</button>
+        </div>
         <div id="amiibo-list"></div>
     </div>
 
@@ -252,10 +307,50 @@
         <div id="amiibo-slots-list"></div>
     </div>
 
+    <!-- The Modal -->
+    <div id="amiiboModal" class="modal">
+        <!-- Modal content -->
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <div id="amiibo-info-and-actions">
+                <div id="amiibo-details">
+                    <h3>Selected Amiibo Details</h3>
+                    <div id="amiibo-details-content">
+                        <div id="amiibo-details-image-container">
+                            <img id="amiibo-details-image" src="" alt="Amiibo Image">
+                        </div>
+                        <div id="amiibo-details-info">
+                            <p><strong>Name:</strong> <span id="detail-name"></span></p>
+                            <p><strong>Amiibo Series:</strong> <span id="detail-amiibo-series"></span></p>
+                            <p><strong>Game Series:</strong> <span id="detail-game-series"></span></p>
+                            <p><strong>Release (NA):</strong> <span id="detail-release-na"></span></p>
+                            <p><strong>Release (EU):</strong> <span id="detail-release-eu"></span></p>
+                            <p><strong>Release (JP):</strong> <span id="detail-release-jp"></span></p>
+                            <p><strong>Release (AU):</strong> <span id="detail-release-au"></span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="actions-container">
+                    <h3>Actions</h3>
+                    <input type="number" id="slot-input" min="1" max="8" value="1">
+                    <button id="write-btn">Write to Slot</button>
+                    <button id="emulate-btn">Emulate</button>
+                    <p id="status"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const connectBtn = document.getElementById('connect-btn');
         const amiiboBrowser = document.getElementById('amiibo-browser');
         const searchInput = document.getElementById('search-input');
+        const gameSeriesFilter = document.getElementById('game-series-filter');
+        const amiiboSeriesFilter = document.getElementById('amiibo-series-filter');
+        const characterFilter = document.getElementById('character-filter');
+        const sortBy = document.getElementById('sort-by');
+        const clearFiltersSortBtn = document.getElementById('clear-filters-sort');
         const amiiboList = document.getElementById('amiibo-list');
         const amiiboDetails = document.getElementById('amiibo-details');
         const amiiboDetailsImage = document.getElementById('amiibo-details-image');
@@ -273,6 +368,10 @@
         const status = document.getElementById('status');
         const amiiboSlotsDiv = document.getElementById('amiibo-slots');
         const amiiboSlotsList = document.getElementById('amiibo-slots-list');
+
+        // Modal elements
+        const amiiboModal = document.getElementById('amiiboModal');
+        const closeButton = document.querySelector('.close-button');
 
         const NRF_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
         const UART_RX_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
@@ -302,9 +401,10 @@
             connectBtn.textContent = 'Connect to Chameleon Ultra';
             connectBtn.disabled = false;
             amiiboBrowser.style.display = 'none';
-            amiiboDetails.style.display = 'none';
-            actionsContainer.style.display = 'none';
+            amiiboDetails.style.display = 'none'; // Hide details section
+            actionsContainer.style.display = 'none'; // Hide actions section
             amiiboSlotsDiv.style.display = 'none';
+            closeModal(); // Close modal on disconnect
             if (ultra && ultra.device) {
                 ultra.device.removeEventListener('gattserverdisconnected', onDisconnected);
             }
@@ -320,6 +420,17 @@
             } else if (type === 'error') {
                 status.classList.add('status-error');
             }
+        }
+
+        // Modal functions
+        function openModal() {
+            amiiboModal.style.display = 'flex'; // Use flex to center content
+        }
+
+        function closeModal() {
+            amiiboModal.style.display = 'none';
+            amiiboDetails.classList.remove('emulating'); // Remove emulating class when modal closes
+            setStatus(''); // Clear status message
         }
 
         class ChameleonUltra {
@@ -466,7 +577,10 @@
             async writeNtag215ToSlot(slot, data, uid, name) {
                 await this._writeNtag215(slot, data, uid);
                 const textEncoder = new TextEncoder();
-                const nameBytes = textEncoder.encode(name);
+                let nameBytes = textEncoder.encode(name);
+                if (nameBytes.length > 255) {
+                    nameBytes = nameBytes.slice(0, 255);
+                }
                 const setNameData = new Uint8Array(2 + nameBytes.length);
                 setNameData[0] = slot;
                 setNameData[1] = TagFrequency.HF; // HF frequency
@@ -523,12 +637,89 @@
                 const response = await fetch('https://www.amiiboapi.com/api/amiibo/');
                 const data = await response.json();
                 allAmiibos = data.amiibo.map(amiibo => ({ id: amiibo.head + amiibo.tail, ...amiibo }));
-                renderAmiiboList(allAmiibos);
+                populateFilterDropdowns(); // Populate dropdowns after loading data
+                applyFiltersAndSort(); // Initial render with all filters/sort applied
                 setStatus('Amiibo list loaded.', 'success');
             } catch (error) {
                 console.error('Error loading Amiibo list:', error);
                 setStatus('Failed to load Amiibo list.', 'error');
             }
+        }
+
+        function populateFilterDropdowns() {
+            // Populate filter dropdowns
+            populateFilterDropdown(gameSeriesFilter, [...new Set(allAmiibos.map(a => a.gameSeries).filter(Boolean))].sort());
+            populateFilterDropdown(amiiboSeriesFilter, [...new Set(allAmiibos.map(a => a.amiiboSeries).filter(Boolean))].sort());
+            populateFilterDropdown(characterFilter, [...new Set(allAmiibos.map(a => a.character).filter(Boolean))].sort());
+        }
+
+        function populateFilterDropdown(selectElement, options) {
+            // Keep the first "All" option
+            selectElement.innerHTML = selectElement.options[0].outerHTML;
+            options.forEach(option => {
+                const opt = document.createElement('option');
+                opt.value = option;
+                opt.textContent = option;
+                selectElement.appendChild(opt);
+            });
+        }
+
+        function applyFiltersAndSort() {
+            let filteredAmiibos = [...allAmiibos]; // Start with a copy of all amiibos
+
+            // 1. Apply Search Filter
+            const searchTerm = searchInput.value.toLowerCase();
+            if (searchTerm) {
+                filteredAmiibos = filteredAmiibos.filter(amiibo =>
+                    amiibo.name.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            // 2. Apply Game Series Filter
+            const selectedGameSeries = gameSeriesFilter.value;
+            if (selectedGameSeries) {
+                filteredAmiibos = filteredAmiibos.filter(amiibo =>
+                    amiibo.gameSeries === selectedGameSeries
+                );
+            }
+
+            // 3. Apply Amiibo Series Filter
+            const selectedAmiiboSeries = amiiboSeriesFilter.value;
+            if (selectedAmiiboSeries) {
+                filteredAmiibos = filteredAmiibos.filter(amiibo =>
+                    amiibo.amiiboSeries === selectedAmiiboSeries
+                );
+            }
+
+            // 4. Apply Character Filter
+            const selectedCharacter = characterFilter.value;
+            if (selectedCharacter) {
+                filteredAmiibos = filteredAmiibos.filter(amiibo =>
+                    amiibo.character === selectedCharacter
+                );
+            }
+
+            // 5. Apply Sorting
+            const sortOption = sortBy.value;
+            filteredAmiibos.sort((a, b) => {
+                if (sortOption === 'name-asc') {
+                    return a.name.localeCompare(b.name);
+                } else if (sortOption === 'name-desc') {
+                    return b.name.localeCompare(a.name);
+                } else if (sortOption === 'release-na-asc') {
+                    // Handle potential null/undefined release dates
+                    const dateA = a.release.na ? new Date(a.release.na) : new Date(0); // Use epoch for null dates
+                    const dateB = b.release.na ? new Date(b.release.na) : new Date(0);
+                    return dateA - dateB;
+                } else if (sortOption === 'release-na-desc') {
+                    const dateA = a.release.na ? new Date(a.release.na) : new Date(0);
+                    const dateB = b.release.na ? new Date(b.release.na) : new Date(0);
+                    return dateB - dateA;
+                }
+                return 0; // No sort or unknown option
+            });
+
+            renderAmiiboList(filteredAmiibos);
         }
 
         async function refreshAmiiboSlots() {
@@ -579,6 +770,7 @@
                     amiiboDetails.classList.remove('emulating'); // Remove emulating class from previous selection
                     amiiboDetails.style.display = 'block'; // Show details when selected
                     actionsContainer.style.display = 'block';
+                    openModal(); // Open modal when amiibo is selected
                 });
                 amiiboList.appendChild(card);
             }
@@ -595,10 +787,20 @@
             detailReleaseAu.textContent = amiibo.release.au || 'N/A';
         }
 
-        searchInput.addEventListener('input', () => {
-            const searchTerm = searchInput.value.toLowerCase();
-            const filteredAmiibos = allAmiibos.filter(amiibo => amiibo.name.toLowerCase().includes(searchTerm));
-            renderAmiiboList(filteredAmiibos);
+        // Filter and Sort Event Listeners
+        gameSeriesFilter.addEventListener('change', applyFiltersAndSort);
+        amiiboSeriesFilter.addEventListener('change', applyFiltersAndSort);
+        characterFilter.addEventListener('change', applyFiltersAndSort);
+        sortBy.addEventListener('change', applyFiltersAndSort);
+        searchInput.addEventListener('input', applyFiltersAndSort); // Already exists, but ensure it calls new function
+
+        clearFiltersSortBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            gameSeriesFilter.value = '';
+            amiiboSeriesFilter.value = '';
+            characterFilter.value = '';
+            sortBy.value = 'name-asc';
+            applyFiltersAndSort();
         });
 
         connectBtn.addEventListener('click', async () => {
@@ -609,7 +811,7 @@
                 connectBtn.textContent = 'Connected';
                 connectBtn.disabled = true;
                 amiiboBrowser.style.display = 'block';
-                loadAmiiboList();
+                await loadAmiiboList(); // Await loading list before refreshing slots
                 refreshAmiiboSlots(); // Refresh slots on connect
                 setStatus('Connected.', 'success');
             } catch (error) {
@@ -635,6 +837,7 @@
                 setStatus('Write successful!', 'success');
                 refreshAmiiboSlots(); // Refresh slots after write
                 amiiboDetails.classList.remove('emulating'); // Remove emulating class after write
+                closeModal(); // Close modal after successful write
             } catch (error) {
                 console.error('Write Error:', error);
                 setStatus('Write failed.', 'error');
@@ -658,11 +861,24 @@
                 setStatus('Emulation started!', 'success');
                 refreshAmiiboSlots(); // Refresh slots after emulate
                 amiiboDetails.classList.add('emulating'); // Add emulating class to current selection
+                closeModal(); // Close modal after successful emulate
             } catch (error) {
                 console.error('Emulation Error:', error);
                 setStatus('Emulation failed.', 'error');
             }
         });
+
+        // Event listener for closing the modal
+        closeButton.addEventListener('click', closeModal);
+        window.addEventListener('click', (event) => {
+            if (event.target == amiiboModal) {
+                closeModal();
+            }
+        });
+
+        // Initial call to apply filters and sort when the page loads
+        // This will be called after loadAmiiboList completes
+        // No need to call here, as loadAmiiboList already calls it.
 
     </script>
 </body>
