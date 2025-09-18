@@ -162,7 +162,7 @@
         #amiibo-info-and-actions {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px; /* Reduced gap */
+            gap: 5px; /* Reduced gap */
             width: 100%;
             /* max-width: 1200px; */ /* Removed as it's now inside modal */
             margin-bottom: 0; /* Removed as it's now inside modal */
@@ -202,9 +202,6 @@
         #amiibo-details-info p {
             margin: 5px 0;
             font-size: 1em;
-        }
-        #amiibo-details-info strong {
-            color: #2c3e50;
         }
         #actions-container {
             flex: 1 1 300px; /* Allows it to grow and shrink, min-width 300px */
@@ -256,6 +253,7 @@
         @media (max-width: 768px) {
             .modal-content {
                 width: 95%;
+                padding: 10px; /* Reduced padding for mobile */
             }
             #amiibo-list {
                 grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -266,10 +264,18 @@
             }
             #amiibo-info-and-actions {
                 flex-direction: column;
+                gap: 5px; /* Reduced gap for mobile */
             }
             #amiibo-details-content {
                 flex-direction: column;
                 align-items: center;
+                gap: 10px; /* Reduced gap for mobile */
+            }
+            #amiibo-details-image {
+                max-width: 100px; /* Smaller image on mobile */
+            }
+            #amiibo-details-info p {
+                margin: 2px 0; /* Reduced margin for paragraphs on mobile */
             }
         }
     </style>
