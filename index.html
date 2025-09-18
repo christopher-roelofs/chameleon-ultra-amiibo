@@ -1,4 +1,4 @@
-<!DOCTYPE0 html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -162,7 +162,7 @@
         #amiibo-info-and-actions {
             display: flex;
             flex-wrap: wrap;
-            gap: 20px;
+            gap: 10px; /* Reduced gap */
             width: 100%;
             /* max-width: 1200px; */ /* Removed as it's now inside modal */
             margin-bottom: 0; /* Removed as it's now inside modal */
@@ -875,10 +875,6 @@
                 closeModal();
             }
         });
-
-        // Initial call to apply filters and sort when the page loads
-        // This will be called after loadAmiiboList completes
-        // No need to call here, as loadAmiiboList already calls it.
 
     </script>
 </body>
