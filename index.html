@@ -45,68 +45,35 @@
         #connect-btn {
             margin-bottom: 20px;
         }
-        #amiibo-browser {
+        .container {
+            max-width: 800px;
             width: 100%;
-            max-width: 1200px;
-            display: none;
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #status-section {
             margin-bottom: 20px;
         }
-        #search-filter-sort-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 15px;
-            align-items: center;
+
+        #upload-status {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            color: #333;
         }
-        #search-input {
-            flex-grow: 1;
-            margin-bottom: 0;
+
+        #upload-status.success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
         }
-        #amiibo-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 15px;
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid #e0e0e0;
-            border-radius: 5px;
-            padding: 10px;
-            background-color: #f9f9f9;
+
+        #upload-status.error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
         }
-        .amiibo-card {
-            border: 2px solid transparent;
-            border-radius: 8px;
-            padding: 10px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s ease-in-out;
-            background-color: #fff;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-        }
-        .amiibo-card:hover {
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-            transform: translateY(-2px);
-        }
-        .amiibo-card.selected {
-            border-color: #007bff;
-            background-color: #e7f3ff;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }
-        .amiibo-card img {
-            max-width: 100px;
-            max-height: 100px;
-            display: block;
-            margin: 0 auto 10px;
-        }
-        .amiibo-card p {
-            font-size: 0.9em;
-            font-weight: bold;
-            color: #555;
-            margin: 0;
+
+        .upload-input {
+            display: none;
         }
         /* Modal Styles */
         .modal {
@@ -225,25 +192,88 @@
         }
         #amiibo-slots {
             width: 100%;
-            max-width: 1200px;
+            max-width: 800px;
             display: none;
+        }
+        .well {
             background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 1px rgba(0,0,0,.05);
         }
-        #amiibo-slots-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 10px;
+
+        .slot {
+            border-left: 4px solid #007bff;
+            position: relative;
         }
-        .slot-item {
-            border: 1px solid #e0e0e0;
-            padding: 10px;
-            border-radius: 5px;
-            text-align: center;
-            font-size: 0.9em;
+
+        .slot-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .slot-summary {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .slot-summary img {
+            border: 1px solid #ddd;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .slot-summary img:hover {
+            transform: scale(1.1);
+            transition: transform 0.2s ease;
+        }
+
+        .slot-links {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .slot-links li {
+            margin: 0;
+        }
+
+        .slot-links a {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 14px;
+            padding: 4px 8px;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+        }
+
+        .slot-links a:hover {
+            background-color: #f8f9fa;
+            text-decoration: underline;
+        }
+
+        .slot-empty {
+            border-left-color: #ccc;
+        }
+
+        .slot-empty .slot-title {
+            color: #999;
+        }
+
+        .slot-selected {
+            border-left-color: #28a745;
+        }
+
+        .slot-selected .slot-title {
+            color: #28a745;
         }
         .amiibo-details.emulating {
             border: 2px solid #28a745; /* Green border for emulating */
@@ -253,64 +283,51 @@
         @media (max-width: 768px) {
             .modal-content {
                 width: 95%;
-                padding: 10px; /* Reduced padding for mobile */
+                padding: 10px;
             }
-            #amiibo-list {
-                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+
+            body {
+                padding: 10px;
             }
-            #search-filter-sort-container {
+
+            .slot-links {
                 flex-direction: column;
-                align-items: stretch;
+                gap: 8px;
+                align-items: flex-start;
             }
-            #amiibo-info-and-actions {
-                flex-direction: column;
-                gap: 5px; /* Reduced gap for mobile */
+
+            .slot-links a {
+                display: inline-block;
+                padding: 8px 12px;
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 4px;
+                width: 100%;
+                text-align: center;
+                box-sizing: border-box;
             }
-            #amiibo-details-content {
-                flex-direction: column;
-                align-items: center;
-                gap: 10px; /* Reduced gap for mobile */
-            }
-            #amiibo-details-image {
-                max-width: 100px; /* Smaller image on mobile */
-            }
-            #amiibo-details-info p {
-                margin: 2px 0; /* Reduced margin for paragraphs on mobile */
+
+            .well {
+                padding: 12px;
+                margin-bottom: 12px;
             }
         }
     </style>
+
 </head>
 <body>
     <h1>Chameleon Ultra Amiibo Emulator</h1>
     <button id="connect-btn">Connect to Chameleon Ultra</button>
 
-    <div id="amiibo-browser">
-        <h2>Select an Amiibo</h2>
-        <div id="search-filter-sort-container">
-            <input type="text" id="search-input" placeholder="Search by name...">
-            <select id="game-series-filter">
-                <option value="">All Game Series</option>
-            </select>
-            <select id="amiibo-series-filter">
-                <option value="">All Amiibo Series</option>
-            </select>
-            <select id="character-filter">
-                <option value="">All Characters</option>
-            </select>
-            <select id="sort-by">
-                <option value="name-asc">Name (A-Z)</option>
-                <option value="name-desc">Name (Z-A)</option>
-                <option value="release-na-asc">Release (NA) Oldest First</option>
-                <option value="release-na-desc">Release (NA) Newest First</option>
-            </select>
-            <button id="clear-filters-sort">Clear</button>
+    <div class="container">
+        <div id="status-section" style="display: none;">
+            <div id="upload-status" style="font-weight: bold; margin-bottom: 20px; padding: 10px; border-radius: 4px;"></div>
         </div>
-        <div id="amiibo-list"></div>
-    </div>
 
-    <div id="amiibo-slots">
-        <h2>Amiibos in Slots</h2>
-        <div id="amiibo-slots-list"></div>
+        <div id="amiibo-slots">
+            <h2>Amiibo Tags</h2>
+            <div id="amiibo-slots-list"></div>
+        </div>
     </div>
 
     <!-- The Modal -->
@@ -339,25 +356,102 @@
 
                 <div id="actions-container">
                     <h3>Actions</h3>
-                    <input type="number" id="slot-input" min="1" max="8" value="1">
+                    <p id="selected-slot-details">Select a slot to see details</p> <!-- New: Element to display selected slot details -->
+                    <select id="slot-select">
+                        <option value="0">Slot 1</option>
+                        <option value="1">Slot 2</option>
+                        <option value="2">Slot 3</option>
+                        <option value="3">Slot 4</option>
+                        <option value="4">Slot 5</option>
+                        <option value="5">Slot 6</option>
+                        <option value="6">Slot 7</option>
+                        <option value="7">Slot 8</option>
+                    </select>
+                    <div style="margin: 10px 0;">
+                        <label style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="random-uid-toggle" style="cursor: pointer;">
+                            <span>Use Random UID</span>
+                        </label>
+                    </div>
                     <button id="write-btn">Write to Slot</button>
                     <button id="emulate-btn">Emulate</button>
+                    <button id="download-amiibo-btn">Download .bin</button>
                     <p id="status"></p>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Slot Details Modal -->
+    <div id="slotModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="slot-close-button">&times;</span>
+            <div id="slot-info-and-actions">
+                <div id="slot-details">
+                    <h3>Slot Details</h3>
+                    <div id="slot-details-content">
+                        <div id="slot-details-image-container">
+                            <img id="slot-details-image" src="" alt="Amiibo Image">
+                        </div>
+                        <div id="slot-details-info">
+                            <p><strong>Slot:</strong> <span id="slot-detail-slot"></span></p>
+                            <p><strong>Name:</strong> <span id="slot-detail-name"></span></p>
+                            <p><strong>Amiibo Series:</strong> <span id="slot-detail-amiibo-series"></span></p>
+                            <p><strong>Game Series:</strong> <span id="slot-detail-game-series"></span></p>
+                            <p><strong>Release (NA):</strong> <span id="slot-detail-release-na"></span></p>
+                            <p><strong>Release (EU):</strong> <span id="slot-detail-release-eu"></span></p>
+                            <p><strong>Release (JP):</strong> <span id="slot-detail-release-jp"></span></p>
+                            <p><strong>Release (AU):</strong> <span id="slot-detail-release-au"></span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="slot-actions-container">
+                    <h3>Actions</h3>
+                    <div style="margin: 10px 0;">
+                        <label style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="slot-random-uid-toggle" style="cursor: pointer;">
+                            <span>Use Random UID</span>
+                        </label>
+                    </div>
+                    <button id="slot-write-btn">Write to Slot</button>
+                    <button id="slot-emulate-btn">Emulate</button>
+                    <p id="slot-status"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clear Slot Confirmation Modal -->
+    <div id="clearSlotModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="close-button" id="clear-close-button">&times;</span>
+            <h3>Clear Slot</h3>
+            <p>Are you sure you want to clear <strong id="clear-slot-name">Slot X</strong>?</p>
+            <p style="color: #666; font-size: 0.9em;">This will permanently delete the Amiibo data from the device.</p>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button id="clear-cancel-btn" style="background-color: #6c757d;">Cancel</button>
+                <button id="clear-confirm-btn" style="background-color: #dc3545;">Clear Slot</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Modal -->
+    <div id="downloadModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <span class="close-button" id="download-close-button">&times;</span>
+            <h3>Download Amiibo</h3>
+            <p>Download <strong id="download-slot-name">Slot X</strong> as a .bin file?</p>
+            <p style="color: #666; font-size: 0.9em;">This feature is not yet implemented. The download would export the tag data as a .bin file compatible with other Amiibo tools.</p>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button id="download-cancel-btn" style="background-color: #6c757d;">Cancel</button>
+                <button id="download-confirm-btn" disabled style="background-color: #ccc;">Download (Coming Soon)</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const connectBtn = document.getElementById('connect-btn');
-        const amiiboBrowser = document.getElementById('amiibo-browser');
-        const searchInput = document.getElementById('search-input');
-        const gameSeriesFilter = document.getElementById('game-series-filter');
-        const amiiboSeriesFilter = document.getElementById('amiibo-series-filter');
-        const characterFilter = document.getElementById('character-filter');
-        const sortBy = document.getElementById('sort-by');
-        const clearFiltersSortBtn = document.getElementById('clear-filters-sort');
-        const amiiboList = document.getElementById('amiibo-list');
         const amiiboDetails = document.getElementById('amiibo-details');
         const amiiboDetailsImage = document.getElementById('amiibo-details-image');
         const detailName = document.getElementById('detail-name');
@@ -368,29 +462,76 @@
         const detailReleaseJp = document.getElementById('detail-release-jp');
         const detailReleaseAu = document.getElementById('detail-release-au');
         const actionsContainer = document.getElementById('actions-container');
-        const slotInput = document.getElementById('slot-input');
+        const slotSelect = document.getElementById('slot-select'); // New: Reference to the select element
         const writeBtn = document.getElementById('write-btn');
         const emulateBtn = document.getElementById('emulate-btn');
+        const randomUidToggle = document.getElementById('random-uid-toggle');
         const status = document.getElementById('status');
         const amiiboSlotsDiv = document.getElementById('amiibo-slots');
         const amiiboSlotsList = document.getElementById('amiibo-slots-list');
+        const selectedSlotDetailsElement = document.getElementById('selected-slot-details'); // New: Reference to the selected slot details element
+
+        // Status elements
+        const statusSection = document.getElementById('status-section');
+        const uploadStatus = document.getElementById('upload-status');
+
+        // Clear modal elements
+        const clearSlotModal = document.getElementById('clearSlotModal');
+        const clearCloseButton = document.getElementById('clear-close-button');
+        const clearSlotName = document.getElementById('clear-slot-name');
+        const clearCancelBtn = document.getElementById('clear-cancel-btn');
+        const clearConfirmBtn = document.getElementById('clear-confirm-btn');
+
+        // Download modal elements
+        const downloadModal = document.getElementById('downloadModal');
+        const downloadCloseButton = document.getElementById('download-close-button');
+        const downloadSlotName = document.getElementById('download-slot-name');
+        const downloadCancelBtn = document.getElementById('download-cancel-btn');
+        const downloadConfirmBtn = document.getElementById('download-confirm-btn');
 
         // Modal elements
         const amiiboModal = document.getElementById('amiiboModal');
         const closeButton = document.querySelector('.close-button');
+
+        // Slot Modal elements
+        const slotModal = document.getElementById('slotModal');
+        const slotCloseButton = document.getElementById('slot-close-button');
+        const slotDetailsImage = document.getElementById('slot-details-image');
+        const slotDetailSlot = document.getElementById('slot-detail-slot');
+        const slotDetailName = document.getElementById('slot-detail-name');
+        const slotDetailAmiiboSeries = document.getElementById('slot-detail-amiibo-series');
+        const slotDetailGameSeries = document.getElementById('slot-detail-game-series');
+        const slotDetailReleaseNa = document.getElementById('slot-detail-release-na');
+        const slotDetailReleaseEu = document.getElementById('slot-detail-release-eu');
+        const slotDetailReleaseJp = document.getElementById('slot-detail-release-jp');
+        const slotDetailReleaseAu = document.getElementById('slot-detail-release-au');
+        const slotRandomUidToggle = document.getElementById('slot-random-uid-toggle');
+        const slotWriteBtn = document.getElementById('slot-write-btn');
+        const slotEmulateBtn = document.getElementById('slot-emulate-btn');
+        const slotStatus = document.getElementById('slot-status');
 
         const NRF_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
         const UART_RX_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
         const UART_TX_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
 
         const CMD_SET_ACTIVE_SLOT = 1003;
+        const CMD_GET_ACTIVE_SLOT = 1018;
         const CMD_GET_SLOT_INFO = 1019;
         const CMD_GET_ALL_SLOT_NICKS = 1038;
         const CMD_GET_ENABLED_SLOTS = 1023;
         const CMD_SET_SLOT_TAG_TYPE = 1004;
         const CMD_SET_SLOT_DATA_DEFAULT = 1005;
+        const CMD_SET_SLOT_ENABLE = 1006;
+        const CMD_DELETE_SLOT_INFO = 1024;
         const CMD_MF1_SET_ANTICOLLISION = 4001;
         const CMD_MF0_NTAG_WRITE_EMU_PAGE_DATA = 4022;
+        const CMD_MF0_NTAG_READ_EMU_PAGE_DATA = 4021;
+        const CMD_MF0_NTAG_GET_VERSION_DATA = 4023;
+        const CMD_MF0_NTAG_SET_VERSION_DATA = 4024;
+        const CMD_MF0_NTAG_GET_SIGNATURE_DATA = 4025;
+        const CMD_MF0_NTAG_SET_SIGNATURE_DATA = 4026;
+        const CMD_MF0_NTAG_SET_WRITE_MODE = 4032;
+        const CMD_MF0_NTAG_SET_UID_MAGIC_MODE = 4020;
         const CMD_SLOT_DATA_CONFIG_SAVE = 1009;
         const CMD_SET_SLOT_TAG_NICK = 1007;
 
@@ -400,22 +541,193 @@
         let ultra = null;
         let allAmiibos = [];
         let selectedAmiiboDetails = null; // Store the full details of the selected Amiibo
+        let selectedSlotIndex = null; // Store the selected slot index
+        let selectedSlotAmiiboDetails = null; // Store the Amiibo details for the selected slot
         let amiiboTemplate = null;
+        let currentSlotNames = []; // Store slot names globally
+        let fixedUids = {}; // Store fixed UIDs for each Amiibo ID
+        let importedBinFile = null; // Store the currently selected .bin file data
+        let importedBinFileName = ''; // Store the .bin file name
+
+        // Load saved preferences
+        randomUidToggle.checked = localStorage.getItem('randomUidEnabled') !== 'false'; // Default to true
+        slotRandomUidToggle.checked = localStorage.getItem('randomUidEnabled') !== 'false'; // Sync with main toggle
 
         function onDisconnected() {
             console.log('Device disconnected');
             connectBtn.textContent = 'Connect to Chameleon Ultra';
             connectBtn.disabled = false;
-            amiiboBrowser.style.display = 'none';
-            amiiboDetails.style.display = 'none'; // Hide details section
-            actionsContainer.style.display = 'none'; // Hide actions section
             amiiboSlotsDiv.style.display = 'none';
+            statusSection.style.display = 'none';
             closeModal(); // Close modal on disconnect
             if (ultra && ultra.device) {
                 ultra.device.removeEventListener('gattserverdisconnected', onDisconnected);
             }
             ultra = null;
-            setStatus('Device disconnected.', 'error');
+            setUploadStatus('Device disconnected', 'error');
+        }
+
+        function setUploadStatus(message, type = 'info') {
+            uploadStatus.textContent = message;
+            uploadStatus.className = ''; // Clear previous classes
+            if (type === 'success') {
+                uploadStatus.classList.add('success');
+            } else if (type === 'error') {
+                uploadStatus.classList.add('error');
+            }
+            statusSection.style.display = 'block';
+
+            // Auto-hide success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusSection.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        function parseBinFile(data) {
+            // NTAG215 can be 540 bytes (standard) or 572+ bytes (with signature)
+            if (data.byteLength !== 540 && data.byteLength < 572) {
+                throw new Error(`Invalid .bin file size: ${data.byteLength} bytes (expected 540 bytes for NTAG215 or 572+ bytes with signature)`);
+            }
+
+            const uint8Data = new Uint8Array(data);
+
+            // Extract UID from first 9 bytes (7-byte UID + 2 check bytes)
+            const uid = uint8Data.slice(0, 7);
+
+            // Extract Amiibo ID from pages 21-22 (bytes 84-91)
+            const amiiboId = uint8Data.slice(84, 92);
+
+            // Convert to hex string for display
+            const amiiboIdHex = Array.from(amiiboId).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+
+            // Use ATQA values that match the GUI: [0, 68] = [0x00, 0x44]
+            const atqa = new Uint8Array([0x00, 0x44]);
+
+            // Extract SAK from the manufacturer data area (this is more complex for Amiibo)
+            // For NTAG215, SAK should be 0x00
+            const sak = 0x00;
+
+            // Extract ATS (Answer To Select) - typically empty for NTAG215
+            const ats = new Uint8Array([]);
+
+            // Use the exact version data from the working slot configuration
+            const ultralightVersion = new Uint8Array([0,4,4,2,1,0,17,3]);
+
+            let signatureData = null;
+            let fileType = 'standard';
+
+            // Check if this is an extended dump with signature data
+            if (data.byteLength >= 572) {
+                // ECC signature is stored after the main NTAG215 data
+                // Based on ChameleonMini source: ECC_SIGNATURE_AFTER_DUMP_OFFSET = 0x04
+                // So signature starts at offset 540 + 4 = 544
+                signatureData = uint8Data.slice(544, 544 + 32);
+                fileType = 'extended';
+
+                // Validate signature (check if it's not all zeros)
+                const isEmptySignature = signatureData.every(byte => byte === 0);
+                if (isEmptySignature) {
+                    console.warn('Warning: ECC signature appears to be empty (all zeros)');
+                }
+            }
+
+            return {
+                fullData: uint8Data.slice(0, 540), // Only the main NTAG215 data
+                uid: uid,
+                amiiboId: amiiboId,
+                amiiboIdHex: amiiboIdHex,
+                atqa: atqa,
+                sak: sak,
+                ats: ats,
+                ultralightVersion: ultralightVersion,
+                signatureData: signatureData,
+                fileType: fileType,
+                size: data.byteLength,
+                hasSignature: signatureData !== null
+            };
+        }
+
+        function patchAmiiboData(binData) {
+            // This function patches the Amiibo data similar to the Python patch.py script
+            // It generates a password based on the UID and appends it with padding
+
+            // If the file is already 540 bytes, check if it's already patched
+            if (binData.fullData.length === 540) {
+                // Check if last 8 bytes look like they've been patched
+                const lastBytes = binData.fullData.slice(532);
+                const hasValidPwd = lastBytes[4] === 0x80 && lastBytes[5] === 0x80;
+
+                if (hasValidPwd) {
+                    console.log('File appears to already be patched, using as-is');
+                    return binData.fullData;
+                }
+            }
+
+            // For patching, we only take the first 532 bytes and generate new password
+            const dataFor532 = binData.fullData.slice(0, 532);
+
+            // Extract UID components for password generation
+            // Python: c[:3]+c[4:8] = bytes 0,1,2,4,5,6,7
+            const uid = new Uint8Array(7);
+            uid[0] = dataFor532[0];
+            uid[1] = dataFor532[1];
+            uid[2] = dataFor532[2];
+            // Skip BCC0 at index 3
+            uid[3] = dataFor532[4];
+            uid[4] = dataFor532[5];
+            uid[5] = dataFor532[6];
+            uid[6] = dataFor532[7];
+
+            // Generate password using the same algorithm as Python script
+            const pwd = new Uint8Array(4);
+            pwd[0] = (0xAA ^ uid[1] ^ uid[3]) & 0xFF;
+            pwd[1] = (0x55 ^ uid[2] ^ uid[4]) & 0xFF;
+            pwd[2] = (0xAA ^ uid[3] ^ uid[5]) & 0xFF;
+            pwd[3] = (0x55 ^ uid[4] ^ uid[6]) & 0xFF;
+
+            // Create the patched data
+            const patchedData = new Uint8Array(540);
+
+            // Copy the original 532 bytes
+            patchedData.set(dataFor532, 0);
+
+            // NTAG215 specific configuration for Switch compatibility
+            // Page 131 (524-527): Configuration page 0
+            // Page 132 (528-531): Configuration page 1
+            // Keep original config pages but ensure proper AUTH0 setting
+
+            // Page 133 (532-535): PWD (Password) - 4 bytes
+            patchedData.set(pwd, 532);
+
+            // Page 134 (536-539): PACK (Password Acknowledge) - 2 bytes + RFU (2 bytes)
+            patchedData[536] = 0x80;  // PACK byte 0
+            patchedData[537] = 0x80;  // PACK byte 1
+            patchedData[538] = 0x00;  // RFU
+            patchedData[539] = 0x00;  // RFU
+
+            // Only set AUTH0 if it's not already set, preserve other config bytes
+            if (patchedData[527] === 0x00 || patchedData[527] === 0xFF) {
+                patchedData[527] = 0x04; // AUTH0: Pages 4+ require authentication
+                console.log('Set AUTH0 to 0x04 for Amiibo compatibility');
+            } else {
+                console.log('AUTH0 already set to 0x' + patchedData[527].toString(16).padStart(2, '0'));
+            }
+
+            // Preserve original configuration bytes - don't override them
+            console.log('Config pages preserved from original file');
+
+            console.log('Patched Amiibo data:', {
+                originalSize: binData.fullData.byteLength,
+                patchedSize: patchedData.byteLength,
+                password: Array.from(pwd).map(b => '0x' + b.toString(16).padStart(2, '0')).join(', '),
+                uid: Array.from(uid).map(b => '0x' + b.toString(16).padStart(2, '0')).join(', '),
+                firstBytes: Array.from(patchedData.slice(0, 16)).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' '),
+                lastBytes: Array.from(patchedData.slice(532, 540)).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ')
+            });
+
+            return patchedData;
         }
 
         function setStatus(message, type = 'info') {
@@ -431,12 +743,70 @@
         // Modal functions
         function openModal() {
             amiiboModal.style.display = 'flex'; // Use flex to center content
+            updateSelectedSlotDetails(); // Update details when modal opens
         }
 
         function closeModal() {
             amiiboModal.style.display = 'none';
-            amiiboDetails.classList.remove('emulating'); // Remove emulating class when modal closes
             setStatus(''); // Clear status message
+        }
+
+        // Slot modal functions
+        function openSlotModal(slotIndex, amiiboDetails) {
+            selectedSlotIndex = slotIndex;
+            selectedSlotAmiiboDetails = amiiboDetails;
+
+            // Populate slot details
+            slotDetailSlot.textContent = `Slot ${slotIndex + 1}`;
+            slotDetailName.textContent = amiiboDetails.name;
+            slotDetailAmiiboSeries.textContent = amiiboDetails.amiiboSeries;
+            slotDetailGameSeries.textContent = amiiboDetails.gameSeries;
+            slotDetailReleaseNa.textContent = amiiboDetails.release.na || 'N/A';
+            slotDetailReleaseEu.textContent = amiiboDetails.release.eu || 'N/A';
+            slotDetailReleaseJp.textContent = amiiboDetails.release.jp || 'N/A';
+            slotDetailReleaseAu.textContent = amiiboDetails.release.au || 'N/A';
+            slotDetailsImage.src = amiiboDetails.image;
+
+            slotModal.style.display = 'flex';
+        }
+
+        function closeSlotModal() {
+            slotModal.style.display = 'none';
+            setSlotStatus(''); // Clear status message
+        }
+
+        function setSlotStatus(message, type = 'info') {
+            slotStatus.textContent = message;
+            slotStatus.className = ''; // Clear previous classes
+            if (type === 'success') {
+                slotStatus.classList.add('status-success');
+            } else if (type === 'error') {
+                slotStatus.classList.add('status-error');
+            }
+        }
+
+        // Modal functions for Clear Slot
+        function openClearSlotModal(slotIndex, slotName) {
+            clearSlotName.textContent = `${slotName} (Slot ${slotIndex + 1})`;
+            clearSlotModal.style.display = 'flex';
+
+            // Store slot index for the confirm action
+            clearConfirmBtn.dataset.slotIndex = slotIndex;
+        }
+
+        function closeClearSlotModal() {
+            clearSlotModal.style.display = 'none';
+            delete clearConfirmBtn.dataset.slotIndex;
+        }
+
+        // Modal functions for Download
+        function openDownloadModal(slotIndex, slotName) {
+            downloadSlotName.textContent = `${slotName} (Slot ${slotIndex + 1})`;
+            downloadModal.style.display = 'flex';
+        }
+
+        function closeDownloadModal() {
+            downloadModal.style.display = 'none';
         }
 
         class ChameleonUltra {
@@ -536,6 +906,11 @@
                 return slots;
             }
 
+            async getActiveSlot() {
+                const response = await this.sendCommand(CMD_GET_ACTIVE_SLOT);
+                return response.getUint8(0);
+            }
+
             async _writeNtag215(slot, data, uid) {
                 const setTypeData = new Uint8Array(3);
                 const setTypeView = new DataView(setTypeData.buffer);
@@ -581,7 +956,18 @@
             }
 
             async writeNtag215ToSlot(slot, data, uid, name) {
+                // First set the slot as active to ensure it's properly initialized
+                const activateSlotData = new Uint8Array([slot]);
+                await this.sendCommand(CMD_SET_ACTIVE_SLOT, activateSlotData);
+
+                // Write the NTAG215 data
                 await this._writeNtag215(slot, data, uid);
+
+                // Enable the slot for HF frequency
+                const enableSlotData = new Uint8Array([slot, TagFrequency.HF, 1]); // slot, frequency, enable(1)
+                await this.sendCommand(CMD_SET_SLOT_ENABLE, enableSlotData);
+
+                // Set the slot nickname
                 const textEncoder = new TextEncoder();
                 let nameBytes = textEncoder.encode(name);
                 if (nameBytes.length > 255) {
@@ -592,6 +978,8 @@
                 setNameData[1] = TagFrequency.HF; // HF frequency
                 setNameData.set(nameBytes, 2);
                 await this.sendCommand(CMD_SET_SLOT_TAG_NICK, setNameData);
+
+                // Save the configuration
                 await this.sendCommand(CMD_SLOT_DATA_CONFIG_SAVE);
             }
 
@@ -600,9 +988,198 @@
                 await this.sendCommand(CMD_SET_ACTIVE_SLOT, activateSlotData);
                 await this._writeNtag215(slot, data, uid);
             }
+
+            async setSignatureData(signatureData) {
+                if (signatureData.length !== 32) {
+                    throw new Error(`Invalid signature data length: ${signatureData.length} bytes (expected 32 bytes)`);
+                }
+                await this.sendCommand(CMD_MF0_NTAG_SET_SIGNATURE_DATA, signatureData);
+            }
+
+            async getSignatureData() {
+                const response = await this.sendCommand(CMD_MF0_NTAG_GET_SIGNATURE_DATA);
+                return new Uint8Array(response.buffer, response.byteOffset, 32);
+            }
+
+            async setVersionData(versionData) {
+                if (versionData.length !== 8) {
+                    throw new Error(`Invalid version data length: ${versionData.length} bytes (expected 8 bytes)`);
+                }
+                await this.sendCommand(CMD_MF0_NTAG_SET_VERSION_DATA, versionData);
+            }
+
+            async getVersionData() {
+                const response = await this.sendCommand(CMD_MF0_NTAG_GET_VERSION_DATA);
+                return new Uint8Array(response.buffer, response.byteOffset, 8);
+            }
+
+            async readNtagPages(startPage, numPages) {
+                const readData = new Uint8Array([startPage, numPages]);
+                const response = await this.sendCommand(CMD_MF0_NTAG_READ_EMU_PAGE_DATA, readData);
+                return new Uint8Array(response.buffer, response.byteOffset, response.byteLength);
+            }
+
+            async writeBinToSlot(slot, binData, name, signatureData = null, versionData = null) {
+                // First set the slot as active to ensure it's properly initialized
+                const activateSlotData = new Uint8Array([slot]);
+                await this.sendCommand(CMD_SET_ACTIVE_SLOT, activateSlotData);
+
+                // Set slot type to NTAG_215
+                const setTypeData = new Uint8Array(3);
+                const setTypeView = new DataView(setTypeData.buffer);
+                setTypeView.setUint8(0, slot);
+                setTypeView.setUint16(1, TagType.NTAG_215, false);
+                await this.sendCommand(CMD_SET_SLOT_TAG_TYPE, setTypeData);
+
+                // Set slot data to default for NTAG_215
+                const setDefaultData = new Uint8Array(3);
+                const setDefaultView = new DataView(setDefaultData.buffer);
+                setDefaultView.setUint8(0, slot);
+                setDefaultView.setUint16(1, TagType.NTAG_215, false);
+                await this.sendCommand(CMD_SET_SLOT_DATA_DEFAULT, setDefaultData);
+
+                // Extract UID data for later anti-collision setup
+                const page0 = binData.slice(0, 4);   // [uid0, uid1, uid2, BCC0]
+                const page1 = binData.slice(4, 8);   // [uid3, uid4, uid5, uid6]
+
+                console.log('Page 0 data:', Array.from(page0).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' '));
+                console.log('Page 1 data:', Array.from(page1).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' '));
+                console.log('Expected UID: 04 CE DB BA 79 11 90');
+
+                // Store for anti-collision setup after page writing
+                const fullUidWithBcc = new Uint8Array(8);
+                fullUidWithBcc.set(page0, 0);       // Copy page 0
+                fullUidWithBcc.set(page1, 4);       // Copy page 1
+
+                // Use provided version data or default NTAG215 version
+                const actualVersionData = versionData || new Uint8Array([0, 4, 4, 2, 1, 0, 17, 3]);
+                console.log('Setting version data:', Array.from(actualVersionData).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' '));
+                await this.setVersionData(actualVersionData);
+
+                // Set NTAG215 write mode to normal for proper emulation
+                try {
+                    const writeMode = 0; // 0 = normal, 1 = denied, 2 = deceive, 3 = shadow
+                    await this.sendCommand(CMD_MF0_NTAG_SET_WRITE_MODE, new Uint8Array([writeMode]));
+                    console.log('Set NTAG write mode to normal');
+                } catch (e) {
+                    console.log('NTAG write mode command failed:', e.message);
+                }
+
+                // Disable UID magic mode for normal NTAG215 emulation
+                try {
+                    await this.sendCommand(CMD_MF0_NTAG_SET_UID_MAGIC_MODE, new Uint8Array([0])); // 0 = disabled
+                    console.log('Disabled UID magic mode');
+                } catch (e) {
+                    console.log('UID magic mode command failed:', e.message);
+                }
+
+                // Set signature data (GUI sets this even if all zeros)
+                const slotSignatureData = new Uint8Array(32); // All zeros like in slot.json
+                await this.setSignatureData(slotSignatureData);
+                console.log('Set signature data (32 zero bytes)');
+
+                // Also set ECC signature data from file if provided
+                if (signatureData && signatureData.length === 32) {
+                    await this.setSignatureData(signatureData);
+                    console.log('Set ECC signature data from file');
+                }
+
+                // Enable password authentication for the emulated NTAG215
+                // Extract password from the patched data (pages 133-134)
+                const passwordBytes = binData.slice(532, 536); // PWD
+                const packBytes = binData.slice(536, 538);     // PACK
+
+                // Configure password authentication (if supported by firmware)
+                try {
+                    // This might need specific command for NTAG password setup
+                    // The password is at page 133 (bytes 532-535)
+                    console.log('Setting NTAG215 password:', Array.from(passwordBytes).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' '));
+                    console.log('Setting NTAG215 PACK:', Array.from(packBytes).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' '));
+                } catch (e) {
+                    console.log('Password setup not available in this firmware version');
+                }
+
+                // Write all 135 pages directly from the .bin file
+                // The command format is: [start_page, num_pages, ...page_data]
+                for (let page = 0; page < 135; page++) {
+                    try {
+                        let pageData = binData.slice(page * 4, (page + 1) * 4);
+                        // Ensure we have exactly 4 bytes
+                        if (pageData.length < 4) {
+                            const paddedData = new Uint8Array(4);
+                            paddedData.set(pageData);
+                            pageData = paddedData;
+                        }
+                        const writeData = new Uint8Array(2 + pageData.length);
+                        writeData[0] = page;
+                        writeData[1] = 1; // Write 1 page at a time
+                        writeData.set(pageData, 2);
+
+                        await this.sendCommand(CMD_MF0_NTAG_WRITE_EMU_PAGE_DATA, writeData);
+
+                        // Add small delay every 10 pages to prevent overwhelming the device
+                        if (page % 10 === 0) {
+                            console.log(`Writing page ${page}/135`);
+                            await new Promise(resolve => setTimeout(resolve, 10));
+                        }
+                    } catch (error) {
+                        console.error(`Failed to write page ${page}:`, error);
+                        throw new Error(`Failed to write page ${page}: ${error.message}`);
+                    }
+                }
+
+                // NOW set up anti-collision AFTER all page data is written
+                // Extract UID properly: skip BCC at position 3
+                const uidForAntiColl = new Uint8Array(7);
+                uidForAntiColl[0] = fullUidWithBcc[0]; // uid0
+                uidForAntiColl[1] = fullUidWithBcc[1]; // uid1
+                uidForAntiColl[2] = fullUidWithBcc[2]; // uid2
+                uidForAntiColl[3] = fullUidWithBcc[4]; // uid3 (skip BCC at [3])
+                uidForAntiColl[4] = fullUidWithBcc[5]; // uid4
+                uidForAntiColl[5] = fullUidWithBcc[6]; // uid5
+                uidForAntiColl[6] = fullUidWithBcc[7]; // uid6
+
+                console.log('Setting anti-collision UID:', Array.from(uidForAntiColl).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' '));
+
+                const atqa = new Uint8Array([0x44, 0x00]); // Standard NTAG215 ATQA - send as [0x44, 0x00] to get exported as [0,68]
+                const sak = 0x00; // Standard NTAG215 SAK
+                const ats = new Uint8Array([]); // No ATS for NTAG215
+
+                const antiCollData = new Uint8Array(1 + uidForAntiColl.length + atqa.length + 1 + 1 + ats.length);
+                let offset = 0;
+                antiCollData[offset++] = uidForAntiColl.length; // UID length
+                antiCollData.set(uidForAntiColl, offset); offset += uidForAntiColl.length;
+                antiCollData.set(atqa, offset); offset += atqa.length;
+                antiCollData[offset++] = sak;
+                antiCollData[offset++] = ats.length;
+                if (ats.length > 0) antiCollData.set(ats, offset);
+
+                console.log('Anti-collision data:', Array.from(antiCollData).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' '));
+                await this.sendCommand(CMD_MF1_SET_ANTICOLLISION, antiCollData);
+                console.log('Anti-collision setup completed after page writing');
+
+                // Enable the slot for HF frequency
+                const enableSlotData = new Uint8Array([slot, TagFrequency.HF, 1]); // slot, frequency, enable(1)
+                await this.sendCommand(CMD_SET_SLOT_ENABLE, enableSlotData);
+
+                // Set the slot nickname
+                const textEncoder = new TextEncoder();
+                let nameBytes = textEncoder.encode(name);
+                if (nameBytes.length > 255) {
+                    nameBytes = nameBytes.slice(0, 255);
+                }
+                const setNameData = new Uint8Array(2 + nameBytes.length);
+                setNameData[0] = slot;
+                setNameData[1] = TagFrequency.HF; // HF frequency
+                setNameData.set(nameBytes, 2);
+                await this.sendCommand(CMD_SET_SLOT_TAG_NICK, setNameData);
+
+                // Save the configuration
+                await this.sendCommand(CMD_SLOT_DATA_CONFIG_SAVE);
+            }
         }
 
-        async function generateAmiiboData(amiiboDetails) {
+        async function generateAmiiboData(amiiboDetails, forceRandomUid = false) {
             if (!amiiboTemplate) {
                 const response = await fetch('NTAG215_blank_valid_signature.bin');
                 const buffer = await response.arrayBuffer();
@@ -619,11 +1196,26 @@
             }
             data.set(idBytes, 84); // Offset 84 for Amiibo ID
 
-            const uid = new Uint8Array(7);
-            uid[0] = 0x04; // NTAG215 UID starts with 0x04
-            for (let i = 1; i < 7; i++) {
-                uid[i] = Math.floor(Math.random() * 256);
+            let uid;
+            const useRandomUid = forceRandomUid || randomUidToggle.checked;
+
+            if (!useRandomUid && fixedUids[amiiboId]) {
+                // Use existing fixed UID for this Amiibo
+                uid = fixedUids[amiiboId];
+            } else {
+                // Generate new UID
+                uid = new Uint8Array(7);
+                uid[0] = 0x04; // NTAG215 UID starts with 0x04
+                for (let i = 1; i < 7; i++) {
+                    uid[i] = Math.floor(Math.random() * 256);
+                }
+
+                // Store fixed UID if not using random
+                if (!useRandomUid) {
+                    fixedUids[amiiboId] = uid;
+                }
             }
+
             // Calculate BCC0 and BCC1
             const bcc0 = uid[0] ^ uid[1] ^ uid[2] ^ uid[3];
             const bcc1 = uid[4] ^ uid[5] ^ uid[6] ^ bcc0;
@@ -637,192 +1229,685 @@
             return { pageData: data, uid: uid };
         }
 
-        async function loadAmiiboList() {
-            setStatus('Loading Amiibo list...');
-            try {
-                const response = await fetch('https://www.amiiboapi.com/api/amiibo/');
-                const data = await response.json();
-                allAmiibos = data.amiibo.map(amiibo => ({ id: amiibo.head + amiibo.tail, ...amiibo }));
-                populateFilterDropdowns(); // Populate dropdowns after loading data
-                applyFiltersAndSort(); // Initial render with all filters/sort applied
-                setStatus('Amiibo list loaded.', 'success');
-            } catch (error) {
-                console.error('Error loading Amiibo list:', error);
-                setStatus('Failed to load Amiibo list.', 'error');
-            }
-        }
-
-        function populateFilterDropdowns() {
-            // Populate filter dropdowns
-            populateFilterDropdown(gameSeriesFilter, [...new Set(allAmiibos.map(a => a.gameSeries).filter(Boolean))].sort());
-            populateFilterDropdown(amiiboSeriesFilter, [...new Set(allAmiibos.map(a => a.amiiboSeries).filter(Boolean))].sort());
-            populateFilterDropdown(characterFilter, [...new Set(allAmiibos.map(a => a.character).filter(Boolean))].sort());
-        }
-
-        function populateFilterDropdown(selectElement, options) {
-            // Keep the first "All" option
-            selectElement.innerHTML = selectElement.options[0].outerHTML;
-            options.forEach(option => {
-                const opt = document.createElement('option');
-                opt.value = option;
-                opt.textContent = option;
-                selectElement.appendChild(opt);
-            });
-        }
-
-        function applyFiltersAndSort() {
-            let filteredAmiibos = [...allAmiibos]; // Start with a copy of all amiibos
-
-            // 1. Apply Search Filter
-            const searchTerm = searchInput.value.toLowerCase();
-            if (searchTerm) {
-                filteredAmiibos = filteredAmiibos.filter(amiibo =>
-                    amiibo.name.toLowerCase().includes(searchTerm)
-                );
-            }
-
-            // 2. Apply Game Series Filter
-            const selectedGameSeries = gameSeriesFilter.value;
-            if (selectedGameSeries) {
-                filteredAmiibos = filteredAmiibos.filter(amiibo =>
-                    amiibo.gameSeries === selectedGameSeries
-                );
-            }
-
-            // 3. Apply Amiibo Series Filter
-            const selectedAmiiboSeries = amiiboSeriesFilter.value;
-            if (selectedAmiiboSeries) {
-                filteredAmiibos = filteredAmiibos.filter(amiibo =>
-                    amiibo.amiiboSeries === selectedAmiiboSeries
-                );
-            }
-
-            // 4. Apply Character Filter
-            const selectedCharacter = characterFilter.value;
-            if (selectedCharacter) {
-                filteredAmiibos = filteredAmiibos.filter(amiibo =>
-                    amiibo.character === selectedCharacter
-                );
-            }
-
-            // 5. Apply Sorting
-            const sortOption = sortBy.value;
-            filteredAmiibos.sort((a, b) => {
-                if (sortOption === 'name-asc') {
-                    return a.name.localeCompare(b.name);
-                } else if (sortOption === 'name-desc') {
-                    return b.name.localeCompare(a.name);
-                } else if (sortOption === 'release-na-asc') {
-                    // Handle potential null/undefined release dates
-                    const dateA = a.release.na ? new Date(a.release.na) : new Date(0); // Use epoch for null dates
-                    const dateB = b.release.na ? new Date(b.release.na) : new Date(0);
-                    return dateA - dateB;
-                } else if (sortOption === 'release-na-desc') {
-                    const dateA = a.release.na ? new Date(a.release.na) : new Date(0);
-                    const dateB = b.release.na ? new Date(b.release.na) : new Date(0);
-                    return dateB - dateA;
-                }
-                return 0; // No sort or unknown option
-            });
-
-            renderAmiiboList(filteredAmiibos);
-        }
 
         async function refreshAmiiboSlots() {
+            console.log('🔄 refreshAmiiboSlots() called');
+
             if (!ultra || !ultra.device || !ultra.device.gatt.connected) {
+                console.log('❌ Device not connected, hiding slots');
                 amiiboSlotsDiv.style.display = 'none';
                 return;
             }
+
             try {
+                console.log('📡 Getting slot info from device...');
                 const responseSlotInfo = await ultra.sendCommand(CMD_GET_SLOT_INFO);
-                const slotNames = await ultra.getSlotNames(); // Use the correct function to get names
+                const slotNames = await ultra.getSlotNames();
+                const activeSlot = await ultra.getActiveSlot();
+                currentSlotNames = slotNames; // Store slot names globally
+
+                console.log('📊 Device data received:');
+                console.log('- Active slot:', activeSlot);
+                console.log('- Slot names:', slotNames);
+                console.log('- Amiibo database size:', allAmiibos.length);
 
                 amiiboSlotsList.innerHTML = '';
                 let hasAmiiboSlots = false;
 
                 for (let i = 0; i < 8; i++) {
                     const hfTagType = responseSlotInfo.getUint16(i * 4, false);
-                    
-                    if (hfTagType === TagType.NTAG_215) {
-                        hasAmiiboSlots = true;
-                        const hfName = slotNames[i].hfName || 'Unnamed Amiibo';
+                    const slotName = slotNames[i].hfName || '';
+                    const isEmpty = !slotName || hfTagType !== TagType.NTAG_215;
+                    const isActive = (i === activeSlot);
 
-                        const slotItem = document.createElement('div');
-                        slotItem.className = 'slot-item';
-                        slotItem.textContent = `Slot ${i + 1}: ${hfName}`;
-                        amiiboSlotsList.appendChild(slotItem);
+                    // Create slot card
+                    const slotCard = document.createElement('div');
+                    slotCard.className = `well slot ${isEmpty ? 'slot-empty' : ''} ${isActive ? 'slot-selected' : ''}`;
+
+                    const slotTitle = document.createElement('div');
+                    slotTitle.className = 'slot-title';
+                    slotTitle.textContent = `Slot ${i + 1}`;
+
+                    const slotSummary = document.createElement('div');
+                    slotSummary.className = 'slot-summary';
+
+                    if (isEmpty) {
+                        slotSummary.textContent = 'Empty slot - Import a .bin file to add an Amiibo';
+                    } else {
+                        hasAmiiboSlots = true;
+
+                        // Always set initial display first
+                        slotSummary.textContent = slotName + (isActive ? ' (Currently Selected)' : '');
+
+                        // Try to get Amiibo info from device data
+                        console.log(`Slot ${i + 1}: Name="${slotName}", isEmpty=${isEmpty}, allAmiibos.length=${allAmiibos.length}`);
+
+                        // Rich Amiibo info will be loaded by retryAmiiboInfoForAllSlots() after database loads
                     }
+
+                    const slotLinks = document.createElement('ul');
+                    slotLinks.className = 'slot-links';
+
+                    // Upload link (always present)
+                    const uploadLi = document.createElement('li');
+                    const uploadLink = document.createElement('a');
+                    uploadLink.href = '#';
+                    uploadLink.textContent = 'Upload .bin';
+
+                    // Create hidden file input for this slot
+                    const fileInput = document.createElement('input');
+                    fileInput.type = 'file';
+                    fileInput.accept = '.bin';
+                    fileInput.className = 'upload-input';
+                    fileInput.id = `upload-input-${i}`;
+
+                    uploadLink.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        fileInput.click();
+                    });
+
+                    fileInput.addEventListener('change', (e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                            uploadBinToSlot(file, i);
+                        }
+                    });
+
+                    uploadLi.appendChild(uploadLink);
+                    uploadLi.appendChild(fileInput);
+                    slotLinks.appendChild(uploadLi);
+
+                    if (!isEmpty) {
+                        // Download link
+                        const downloadLi = document.createElement('li');
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = '#';
+                        downloadLink.textContent = 'Download';
+                        downloadLink.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            openDownloadModal(i, slotName);
+                        });
+                        downloadLi.appendChild(downloadLink);
+                        slotLinks.appendChild(downloadLi);
+
+                        // Clear link
+                        const clearLi = document.createElement('li');
+                        const clearLink = document.createElement('a');
+                        clearLink.href = '#';
+                        clearLink.textContent = 'Clear';
+                        clearLink.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            openClearSlotModal(i, slotName);
+                        });
+                        clearLi.appendChild(clearLink);
+                        slotLinks.appendChild(clearLi);
+
+                        // Select link
+                        const selectLi = document.createElement('li');
+                        const selectLink = document.createElement('a');
+                        selectLink.href = '#';
+                        selectLink.textContent = 'Select';
+                        selectLink.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            selectSlot(i);
+                        });
+                        selectLi.appendChild(selectLink);
+                        slotLinks.appendChild(selectLi);
+                    }
+
+                    slotCard.appendChild(slotTitle);
+                    slotCard.appendChild(slotSummary);
+                    slotCard.appendChild(slotLinks);
+                    amiiboSlotsList.appendChild(slotCard);
                 }
-                amiiboSlotsDiv.style.display = hasAmiiboSlots ? 'block' : 'none';
+
+                amiiboSlotsDiv.style.display = 'block'; // Always show slots section
+
+                // Ensure the visual selection indicators are properly set for the active slot
+                updateSlotSelectionIndicators(activeSlot);
+
+                console.log(`✅ refreshAmiiboSlots() completed. Created ${amiiboSlotsList.children.length} slot cards. Active slot: ${activeSlot}`);
             } catch (error) {
-                console.error('Error refreshing Amiibo slots:', error);
+                console.error('❌ Error refreshing Amiibo slots:', error);
                 amiiboSlotsDiv.style.display = 'none';
             }
         }
 
-        function renderAmiiboList(amiibos) {
-            amiiboList.innerHTML = '';
-            for (const amiibo of amiibos) {
-                const card = document.createElement('div');
-                card.className = 'amiibo-card';
-                card.dataset.id = amiibo.id;
-                card.innerHTML = `<img src="${amiibo.image}" alt="${amiibo.name}"><p>${amiibo.name}</p>`;
-                card.addEventListener('click', () => {
-                    const currentlySelected = document.querySelector('.amiibo-card.selected');
-                    if (currentlySelected) currentlySelected.classList.remove('selected');
-                    card.classList.add('selected');
-                    selectedAmiiboDetails = amiibo; // Store the full amiibo object
-                    displayAmiiboDetails(amiibo);
-                    amiiboDetails.classList.remove('emulating'); // Remove emulating class from previous selection
-                    amiiboDetails.style.display = 'block'; // Show details when selected
-                    actionsContainer.style.display = 'block';
-                    openModal(); // Open modal when amiibo is selected
-                });
-                amiiboList.appendChild(card);
+        async function clearSlot(slotIndex) {
+            try {
+                // Delete slot info (this properly removes the slot data)
+                const deleteSlotData = new Uint8Array([slotIndex, TagFrequency.HF]);
+                await ultra.sendCommand(CMD_DELETE_SLOT_INFO, deleteSlotData);
+
+                // Set the slot nickname to "Empty"
+                const textEncoder = new TextEncoder();
+                const emptyNameBytes = textEncoder.encode('Empty');
+                const clearNameData = new Uint8Array(2 + emptyNameBytes.length);
+                clearNameData[0] = slotIndex;
+                clearNameData[1] = TagFrequency.HF;
+                clearNameData.set(emptyNameBytes, 2);
+                await ultra.sendCommand(CMD_SET_SLOT_TAG_NICK, clearNameData);
+
+                // Save the configuration
+                await ultra.sendCommand(CMD_SLOT_DATA_CONFIG_SAVE);
+
+                // Refresh the display, then enhance with rich Amiibo info
+                await refreshAmiiboSlots();
+                if (allAmiibos.length > 0) {
+                    await enhanceSlotCardsWithAmiiboInfo();
+                }
+                setUploadStatus(`Successfully cleared slot ${slotIndex + 1}`, 'success');
+            } catch (error) {
+                console.error('Error clearing slot:', error);
+                setUploadStatus(`Failed to clear slot ${slotIndex + 1}: ${error.message}`, 'error');
             }
         }
 
-        function displayAmiiboDetails(amiibo) {
-            amiiboDetailsImage.src = amiibo.image;
-            detailName.textContent = amiibo.name;
-            detailAmiiboSeries.textContent = amiibo.amiiboSeries;
-            detailGameSeries.textContent = amiibo.gameSeries;
-            detailReleaseNa.textContent = amiibo.release.na || 'N/A';
-            detailReleaseEu.textContent = amiibo.release.eu || 'N/A';
-            detailReleaseJp.textContent = amiibo.release.jp || 'N/A';
-            detailReleaseAu.textContent = amiibo.release.au || 'N/A';
+        async function selectSlot(slotIndex) {
+            try {
+                const activateSlotData = new Uint8Array([slotIndex]);
+                await ultra.sendCommand(CMD_SET_ACTIVE_SLOT, activateSlotData);
+
+                // Update visual indicators without full refresh
+                updateSlotSelectionIndicators(slotIndex);
+
+                setUploadStatus(`Selected slot ${slotIndex + 1}`, 'success');
+            } catch (error) {
+                console.error('Error selecting slot:', error);
+                setUploadStatus(`Failed to select slot: ${error.message}`, 'error');
+            }
         }
 
-        // Filter and Sort Event Listeners
-        gameSeriesFilter.addEventListener('change', applyFiltersAndSort);
-        amiiboSeriesFilter.addEventListener('change', applyFiltersAndSort);
-        characterFilter.addEventListener('change', applyFiltersAndSort);
-        sortBy.addEventListener('change', applyFiltersAndSort);
-        searchInput.addEventListener('input', applyFiltersAndSort); // Already exists, but ensure it calls new function
+        function updateSlotSelectionIndicators(newActiveSlotIndex) {
+            const slotCards = document.querySelectorAll('.slot');
 
-        clearFiltersSortBtn.addEventListener('click', () => {
-            searchInput.value = '';
-            gameSeriesFilter.value = '';
-            amiiboSeriesFilter.value = '';
-            characterFilter.value = '';
-            sortBy.value = 'name-asc';
-            applyFiltersAndSort();
-        });
+            slotCards.forEach((card, index) => {
+                const summaryElement = card.querySelector('.slot-summary');
+                if (!summaryElement) return;
+
+                const isSelected = (index === newActiveSlotIndex);
+
+                // Update card styling
+                if (isSelected) {
+                    card.classList.remove('slot-empty');
+                    card.classList.add('slot-selected');
+                } else {
+                    card.classList.remove('slot-selected');
+                    // Keep other classes as they were
+                }
+
+                // Update text content to add/remove "Currently Selected"
+                if (summaryElement.innerHTML.includes('<div')) {
+                    // Rich content (Amiibo info) - update the name line
+                    // Find the name div more specifically - it has font-weight: bold
+                    const nameDiv = summaryElement.querySelector('div[style*="font-weight: bold"]');
+                    if (nameDiv) {
+                        let text = nameDiv.textContent;
+                        // Remove old status
+                        text = text.replace(' (Currently Selected)', '');
+                        // Add new status if selected
+                        if (isSelected) {
+                            text += ' (Currently Selected)';
+                        }
+                        nameDiv.textContent = text;
+                    }
+                } else {
+                    // Simple text content - update directly
+                    let text = summaryElement.textContent;
+                    // Remove old status
+                    text = text.replace(' (Currently Selected)', '');
+                    // Add new status if selected
+                    if (isSelected) {
+                        text += ' (Currently Selected)';
+                    }
+                    summaryElement.textContent = text;
+                }
+
+                // Select buttons always show "Select" text - no need to change it
+            });
+        }
+
+        async function updateSingleSlotAfterUpload(slotIndex, fileName) {
+            const slotCards = document.querySelectorAll('.slot');
+            const slotCard = slotCards[slotIndex];
+
+            if (!slotCard) return;
+
+            // Update visual styling - no longer empty
+            slotCard.classList.remove('slot-empty');
+
+            // Update summary text temporarily
+            const summaryElement = slotCard.querySelector('.slot-summary');
+            if (summaryElement) {
+                summaryElement.textContent = `${fileName} (uploaded)`;
+            }
+
+            // Update the links - add Download, Clear, Select links for newly populated slot
+            const linksElement = slotCard.querySelector('.slot-links');
+            if (linksElement) {
+                // Find the upload link (should be first)
+                const uploadLi = linksElement.querySelector('li');
+
+                // Check if links need to be added (avoid duplicates)
+                const hasDownload = Array.from(linksElement.querySelectorAll('a')).some(a => a.textContent === 'Download');
+                const hasClear = Array.from(linksElement.querySelectorAll('a')).some(a => a.textContent === 'Clear');
+                const hasSelect = Array.from(linksElement.querySelectorAll('a')).some(a => a.textContent === 'Select');
+
+                // Add missing links individually
+                if (!hasDownload) {
+                    // Download link
+                    const downloadLi = document.createElement('li');
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = '#';
+                    downloadLink.textContent = 'Download';
+                    downloadLink.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        openDownloadModal(slotIndex, fileName);
+                    });
+                    downloadLi.appendChild(downloadLink);
+                    linksElement.appendChild(downloadLi);
+                }
+
+                if (!hasClear) {
+                    // Clear link
+                    const clearLi = document.createElement('li');
+                    const clearLink = document.createElement('a');
+                    clearLink.href = '#';
+                    clearLink.textContent = 'Clear';
+                    clearLink.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        openClearSlotModal(slotIndex, fileName);
+                    });
+                    clearLi.appendChild(clearLink);
+                    linksElement.appendChild(clearLi);
+                }
+
+                if (!hasSelect) {
+                    // Select link
+                    const selectLi = document.createElement('li');
+                    const selectLink = document.createElement('a');
+                    selectLink.href = '#';
+                    selectLink.textContent = 'Select';
+                    selectLink.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        selectSlot(slotIndex);
+                    });
+                    selectLi.appendChild(selectLink);
+                    linksElement.appendChild(selectLi);
+                }
+            }
+
+            // Try to get Amiibo info for this specific slot after a short delay
+            setTimeout(async () => {
+                try {
+                    console.log(`🔍 Getting Amiibo info for newly uploaded slot ${slotIndex + 1}...`);
+                    const amiiboInfo = await getSlotAmiiboInfo(slotIndex);
+                    if (amiiboInfo && amiiboInfo.name && summaryElement) {
+                        // Update with rich Amiibo information
+                        summaryElement.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                <img src="${amiiboInfo.image}" alt="${amiiboInfo.name}"
+                                     style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; background: #f0f0f0;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: bold; color: #333;">${amiiboInfo.name}</div>
+                                    <div style="font-size: 0.85em; color: #666;">${amiiboInfo.amiiboSeries}</div>
+                                </div>
+                            </div>
+                            <div style="font-size: 0.8em; color: #888; line-height: 1.3;">
+                                <div><strong>Game Series:</strong> ${amiiboInfo.gameSeries}</div>
+                                <div><strong>Character:</strong> ${amiiboInfo.character}</div>
+                                <div><strong>Release (NA):</strong> ${amiiboInfo.release?.na || 'TBD'}</div>
+                                <div><strong>Amiibo ID:</strong> ${amiiboInfo.extractedId}</div>
+                            </div>
+                        `;
+                        console.log(`✅ Updated uploaded slot ${slotIndex + 1} with Amiibo info: ${amiiboInfo.name}`);
+                    }
+                } catch (error) {
+                    console.log(`Could not get Amiibo info for uploaded slot ${slotIndex + 1}:`, error.message);
+                }
+            }, 1000); // Wait 1 second for upload to settle
+        }
+
+        async function uploadBinToSlot(file, slotIndex) {
+            if (!ultra || !ultra.device || !ultra.device.gatt.connected) {
+                setUploadStatus('Device not connected', 'error');
+                return;
+            }
+
+            if (!file.name.toLowerCase().endsWith('.bin')) {
+                setUploadStatus('Please select a .bin file', 'error');
+                return;
+            }
+
+            try {
+                setUploadStatus(`Uploading ${file.name} to slot ${slotIndex + 1}...`);
+
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const parsedBin = parseBinFile(e.target.result);
+                        const fileName = file.name.replace('.bin', '');
+
+                        // Patch the Amiibo data for Switch compatibility
+                        const patchedData = patchAmiiboData(parsedBin);
+
+                        // Write the patched bin file with signature data if available
+                        await ultra.writeBinToSlot(slotIndex, patchedData, fileName, parsedBin.signatureData, parsedBin.ultralightVersion);
+
+                        const signatureMsg = parsedBin.hasSignature ? ' (with ECC signature)' : '';
+                        setUploadStatus(`Successfully uploaded ${file.name} to Slot ${slotIndex + 1}${signatureMsg}!`, 'success');
+
+                        // Update just this slot instead of refreshing all
+                        updateSingleSlotAfterUpload(slotIndex, file.name.replace('.bin', ''));
+
+                    } catch (error) {
+                        console.error('Upload error:', error);
+                        setUploadStatus(`Failed to upload ${file.name}: ${error.message}`, 'error');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+
+            } catch (error) {
+                console.error('File read error:', error);
+                setUploadStatus(`Failed to read file: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadAmiiboList() {
+            if (allAmiibos.length > 0) {
+                return; // Already loaded
+            }
+
+            try {
+                console.log('Loading Amiibo list from API...');
+                const response = await fetch('https://www.amiiboapi.com/api/amiibo/');
+                const data = await response.json();
+                allAmiibos = data.amiibo.map(amiibo => ({
+                    id: amiibo.head + amiibo.tail,
+                    ...amiibo
+                }));
+                console.log(`Loaded ${allAmiibos.length} Amiibos from API`);
+            } catch (error) {
+                console.error('Error loading Amiibo list:', error);
+                setUploadStatus('Failed to load Amiibo database', 'error');
+            }
+        }
+
+        async function enhanceSlotCardsWithAmiiboInfo() {
+            if (!ultra || !ultra.device || !ultra.device.gatt.connected) {
+                console.log('Device not connected, skipping Amiibo info enhancement');
+                return;
+            }
+
+            console.log('🎨 Enhancing slot cards with rich Amiibo information...');
+
+            // Get the original active slot before we start switching slots to read data
+            const originalActiveSlot = await ultra.getActiveSlot();
+            console.log(`📍 Original active slot: ${originalActiveSlot}`);
+
+            const slotCards = document.querySelectorAll('.slot');
+
+            for (let i = 0; i < slotCards.length; i++) {
+                const slotCard = slotCards[i];
+                const summaryElement = slotCard.querySelector('.slot-summary');
+
+                // Skip empty slots or slots that already have rich content
+                if (slotCard.classList.contains('slot-empty') ||
+                    (summaryElement && summaryElement.innerHTML.includes('<div'))) {
+                    continue;
+                }
+
+                console.log(`🎨 Enhancing slot ${i + 1} with Amiibo info...`);
+                try {
+                    const amiiboInfo = await getSlotAmiiboInfo(i);
+                    if (amiiboInfo && amiiboInfo.name && summaryElement) {
+                        // Use the original active slot to determine status (not current, since we're switching slots)
+                        const isCurrentlyActive = (i === originalActiveSlot);
+                        const statusText = isCurrentlyActive ? ' (Currently Selected)' : '';
+
+                        // Update with rich Amiibo information
+                        summaryElement.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                <img src="${amiiboInfo.image}" alt="${amiiboInfo.name}"
+                                     style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; background: #f0f0f0;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: bold; color: #333;">${amiiboInfo.name}${statusText}</div>
+                                    <div style="font-size: 0.85em; color: #666;">${amiiboInfo.amiiboSeries}</div>
+                                </div>
+                            </div>
+                            <div style="font-size: 0.8em; color: #888; line-height: 1.3;">
+                                <div><strong>Game Series:</strong> ${amiiboInfo.gameSeries}</div>
+                                <div><strong>Character:</strong> ${amiiboInfo.character}</div>
+                                <div><strong>Release (NA):</strong> ${amiiboInfo.release?.na || 'TBD'}</div>
+                                <div><strong>Amiibo ID:</strong> ${amiiboInfo.extractedId}</div>
+                            </div>
+                        `;
+                        console.log(`✅ Enhanced slot ${i + 1} with rich Amiibo info: ${amiiboInfo.name}`);
+                    }
+                } catch (error) {
+                    console.log(`Could not get Amiibo info for slot ${i + 1}:`, error.message);
+                }
+            }
+
+            // Restore the original active slot
+            try {
+                const activateSlotData = new Uint8Array([originalActiveSlot]);
+                await ultra.sendCommand(CMD_SET_ACTIVE_SLOT, activateSlotData);
+                console.log(`🔄 Restored original active slot: ${originalActiveSlot}`);
+            } catch (error) {
+                console.log(`Could not restore original active slot ${originalActiveSlot}:`, error.message);
+            }
+        }
+
+        function extractAmiiboIdFromSlotData(slotData) {
+            // Amiibo ID is stored at bytes 84-91 (pages 21-22) in NTAG215 format
+            // This is the 8-byte Amiibo ID used to identify the character
+            if (!slotData || slotData.length < 92) {
+                return null;
+            }
+
+            const amiiboIdBytes = slotData.slice(84, 92);
+            const amiiboIdHex = Array.from(amiiboIdBytes)
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('')
+                .toUpperCase();
+
+            return amiiboIdHex;
+        }
+
+        function findAmiiboByID(amiiboId) {
+            if (!amiiboId || allAmiibos.length === 0) {
+                return null;
+            }
+
+            // Try to find exact match first
+            let amiibo = allAmiibos.find(a => a.id.toUpperCase() === amiiboId.toUpperCase());
+
+            if (!amiibo) {
+                // Try partial match on head+tail combination
+                const head = amiiboId.substring(0, 8);
+                const tail = amiiboId.substring(8, 16);
+                amiibo = allAmiibos.find(a =>
+                    a.head.toUpperCase() === head && a.tail.toUpperCase() === tail
+                );
+            }
+
+            return amiibo;
+        }
+
+        async function getSlotAmiiboInfo(slotIndex) {
+            try {
+                if (!ultra || !ultra.device || !ultra.device.gatt.connected) {
+                    console.log(`Device not connected for slot ${slotIndex + 1}`);
+                    return null;
+                }
+
+                if (allAmiibos.length === 0) {
+                    console.log(`Amiibo database not loaded yet for slot ${slotIndex + 1}`);
+                    return null;
+                }
+
+                console.log(`Setting slot ${slotIndex + 1} as active to read Amiibo data...`);
+                // Set the slot as active to read from it
+                const activateSlotData = new Uint8Array([slotIndex]);
+                await ultra.sendCommand(CMD_SET_ACTIVE_SLOT, activateSlotData);
+
+                // Small delay to ensure slot is active
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                console.log(`Reading NTAG pages 21-22 from slot ${slotIndex + 1}...`);
+                // Read pages 21-22 (Amiibo ID is at bytes 84-91, which is pages 21-22)
+                const pageData = await ultra.readNtagPages(21, 2); // 2 pages = 8 bytes
+
+                console.log(`Read ${pageData.length} bytes from slot ${slotIndex + 1}:`, Array.from(pageData).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' '));
+
+                if (pageData.length >= 8) {
+                    // Convert to hex string (Amiibo ID format)
+                    const amiiboIdHex = Array.from(pageData)
+                        .map(b => b.toString(16).padStart(2, '0'))
+                        .join('')
+                        .toUpperCase();
+
+                    console.log(`Slot ${slotIndex + 1} extracted Amiibo ID: ${amiiboIdHex}`);
+
+                    // Skip if the ID looks like empty/default data
+                    if (amiiboIdHex === '0000000000000000' || amiiboIdHex === 'FFFFFFFFFFFFFFFF') {
+                        console.log(`Slot ${slotIndex + 1} has empty/default Amiibo ID`);
+                        return null;
+                    }
+
+                    // Find the Amiibo in our database
+                    const amiiboInfo = findAmiiboByID(amiiboIdHex);
+                    if (amiiboInfo) {
+                        console.log(`✓ Found Amiibo match for slot ${slotIndex + 1}: ${amiiboInfo.name}`);
+                        return {
+                            ...amiiboInfo,
+                            extractedId: amiiboIdHex
+                        };
+                    } else {
+                        console.log(`No Amiibo match found for ID ${amiiboIdHex} in slot ${slotIndex + 1}`);
+                    }
+                } else {
+                    console.log(`Not enough data read from slot ${slotIndex + 1} (got ${pageData.length} bytes, expected 8)`);
+                }
+
+                return null;
+            } catch (error) {
+                console.error(`Error reading slot ${slotIndex + 1} data:`, error);
+                return null;
+            }
+        }
+
+
+        // New function to update selected slot details
+        async function updateSelectedSlotDetails() {
+            const selectedSlotIndex = parseInt(slotSelect.value, 10);
+
+            if (!selectedSlotDetailsElement) return;
+
+            // If we don't have slot names yet, try to fetch them
+            if (!currentSlotNames || currentSlotNames.length === 0) {
+                if (ultra && ultra.device && ultra.device.gatt.connected) {
+                    try {
+                        currentSlotNames = await ultra.getSlotNames();
+                    } catch (error) {
+                        console.error('Error fetching slot names:', error);
+                        selectedSlotDetailsElement.textContent = `Slot ${selectedSlotIndex + 1}: Unable to fetch info`;
+                        return;
+                    }
+                } else {
+                    selectedSlotDetailsElement.textContent = `Slot ${selectedSlotIndex + 1}: Not connected`;
+                    return;
+                }
+            }
+
+            // Update the display with the slot information
+            if (currentSlotNames && selectedSlotIndex >= 0 && selectedSlotIndex < currentSlotNames.length) {
+                const slotInfo = currentSlotNames[selectedSlotIndex];
+                const amiiboName = slotInfo.hfName || 'Empty';
+                selectedSlotDetailsElement.textContent = `Slot ${selectedSlotIndex + 1}: ${amiiboName}`;
+            } else {
+                selectedSlotDetailsElement.textContent = `Slot ${selectedSlotIndex + 1}: No info available`;
+            }
+        }
+
 
         connectBtn.addEventListener('click', async () => {
             try {
-                setStatus('Connecting...');
+                setUploadStatus('Connecting to Chameleon Ultra...');
                 ultra = new ChameleonUltra();
                 await ultra.connect();
                 connectBtn.textContent = 'Connected';
                 connectBtn.disabled = true;
-                amiiboBrowser.style.display = 'block';
-                await loadAmiiboList(); // Await loading list before refreshing slots
-                refreshAmiiboSlots(); // Refresh slots on connect
-                setStatus('Connected.', 'success');
+
+                // 1. First, display basic slot cards immediately
+                await refreshAmiiboSlots();
+                setUploadStatus('Connected to Chameleon Ultra', 'success');
+
+                // 2. Then load Amiibo database and enhance cards with rich info
+                await loadAmiiboList();
+                await enhanceSlotCardsWithAmiiboInfo();
             } catch (error) {
                 console.error('Error:', error);
-                setStatus('Connection Failed.', 'error');
+                setUploadStatus('Connection Failed', 'error');
+            }
+        });
+
+        // Auto-generate Amiibo .bin functionality
+        const downloadAmiiboBtn = document.getElementById('download-amiibo-btn');
+
+        async function generateAmiiboBin() {
+            if (!selectedAmiiboDetails) {
+                throw new Error('No Amiibo selected');
+            }
+
+            const amiiboId = selectedAmiiboDetails.head + selectedAmiiboDetails.tail;
+            const amiiboName = selectedAmiiboDetails.name;
+
+            // Generate Amiibo bin using our legal template + API data
+            const generatedBin = createAmiiboFromTemplate(amiiboId, amiiboName);
+
+            console.log('Generated Amiibo bin:', {
+                name: amiiboName,
+                id: amiiboId,
+                uid: generatedBin.info.uidHex,
+                password: generatedBin.info.passwordHex,
+                encrypted: true // Uses working encrypted template
+            });
+
+            return generatedBin;
+        }
+
+        downloadAmiiboBtn.addEventListener('click', async () => {
+            if (!selectedAmiiboDetails) {
+                setStatus('Please select an Amiibo first.', 'error');
+                return;
+            }
+
+            try {
+                setStatus('Generating Amiibo .bin file...');
+
+                const generatedAmiiboBin = await generateAmiiboBin();
+
+                const blob = new Blob([generatedAmiiboBin.template], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+
+                // Clean filename
+                const cleanName = generatedAmiiboBin.amiiboName.replace(/[<>:"/\\|?*]/g, '_');
+                a.download = `${cleanName}_[${generatedAmiiboBin.amiiboId.substring(4, 12)}]_Legal.bin`;
+
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                setStatus(`Downloaded legal Amiibo .bin for ${generatedAmiiboBin.amiiboName}!`, 'success');
+
+            } catch (error) {
+                console.error('Download error:', error);
+                setStatus(`Failed to generate/download Amiibo .bin: ${error.message}`, 'error');
             }
         });
 
@@ -831,18 +1916,53 @@
                 setStatus('Please select an Amiibo.', 'error');
                 return;
             }
-            const slot = parseInt(slotInput.value, 10) - 1;
-            if (slot < 0 || slot > 7) {
+            const slot = parseInt(slotSelect.value, 10); // Get value from select
+            if (slot < 0 || slot > 7) { // Slot values are 0-7
                 setStatus('Invalid slot number.', 'error');
                 return;
             }
             try {
-                setStatus('Generating and writing...');
-                const { pageData, uid } = await generateAmiiboData(selectedAmiiboDetails);
-                await ultra.writeNtag215ToSlot(slot, pageData, uid, selectedAmiiboDetails.name);
-                setStatus('Write successful!', 'success');
-                refreshAmiiboSlots(); // Refresh slots after write
-                amiiboDetails.classList.remove('emulating'); // Remove emulating class after write
+                setStatus('Generating and writing Amiibo...');
+
+                // Generate fresh Amiibo bin
+                const generatedAmiiboBin = await generateAmiiboBin();
+
+                // Ensure the generated UID is properly embedded in the template data
+                // The UID should already be in the template, but let's verify and fix if needed
+                const templateData = new Uint8Array(generatedAmiiboBin.template);
+
+                // Calculate BCC values for the UID
+                const bcc0 = generatedAmiiboBin.uid[0] ^ generatedAmiiboBin.uid[1] ^ generatedAmiiboBin.uid[2] ^ 0x88;
+                const bcc1 = generatedAmiiboBin.uid[3] ^ generatedAmiiboBin.uid[4] ^ generatedAmiiboBin.uid[5] ^ generatedAmiiboBin.uid[6];
+
+                // Set UID in pages 0-1 of the template data
+                templateData[0] = generatedAmiiboBin.uid[0]; // UID0
+                templateData[1] = generatedAmiiboBin.uid[1]; // UID1
+                templateData[2] = generatedAmiiboBin.uid[2]; // UID2
+                templateData[3] = bcc0;                      // BCC0
+                templateData[4] = generatedAmiiboBin.uid[3]; // UID3
+                templateData[5] = generatedAmiiboBin.uid[4]; // UID4
+                templateData[6] = generatedAmiiboBin.uid[5]; // UID5
+                templateData[7] = generatedAmiiboBin.uid[6]; // UID6
+                templateData[8] = bcc1;                      // BCC1
+
+                console.log('Setting unique UID in template:', generatedAmiiboBin.info.uidHex);
+
+                // Create a patched version for upload
+                const binData = {
+                    fullData: templateData,
+                    uid: generatedAmiiboBin.uid,
+                    ultralightVersion: new Uint8Array([0, 4, 4, 2, 1, 0, 17, 3]) // Standard NTAG215 version
+                };
+
+                const patchedData = patchAmiiboData(binData);
+                await ultra.writeBinToSlot(slot, patchedData, selectedAmiiboDetails.name, null, binData.ultralightVersion);
+
+                setStatus('Legal Amiibo written successfully!', 'success');
+                await refreshAmiiboSlots(); // Refresh slots after write
+                if (allAmiibos.length > 0) {
+                    await enhanceSlotCardsWithAmiiboInfo();
+                }
                 closeModal(); // Close modal after successful write
             } catch (error) {
                 console.error('Write Error:', error);
@@ -855,18 +1975,23 @@
                 setStatus('Please select an Amiibo.', 'error');
                 return;
             }
-            const slot = parseInt(slotInput.value, 10) - 1;
-            if (slot < 0 || slot > 7) {
+            const slot = parseInt(slotSelect.value, 10); // Get value from select
+            if (slot < 0 || slot > 7) { // Slot values are 0-7
                 setStatus('Invalid slot number.', 'error');
                 return;
             }
             try {
-                setStatus('Generating and emulating...');
-                const { pageData, uid } = await generateAmiiboData(selectedAmiiboDetails);
-                await ultra.emulateNtag215(slot, pageData, uid);
-                setStatus('Emulation started!', 'success');
-                refreshAmiiboSlots(); // Refresh slots after emulate
-                amiiboDetails.classList.add('emulating'); // Add emulating class to current selection
+                setStatus('Generating and emulating Amiibo...');
+
+                // Generate fresh Amiibo bin
+                const generatedAmiiboBin = await generateAmiiboBin();
+
+                await ultra.emulateNtag215(slot, generatedAmiiboBin.template, generatedAmiiboBin.uid);
+                setStatus('Legal Amiibo emulation started!', 'success');
+                await refreshAmiiboSlots(); // Refresh slots after emulate
+                if (allAmiibos.length > 0) {
+                    await enhanceSlotCardsWithAmiiboInfo();
+                }
                 closeModal(); // Close modal after successful emulate
             } catch (error) {
                 console.error('Emulation Error:', error);
@@ -874,11 +1999,214 @@
             }
         });
 
+        // Event listener for random UID toggle
+        randomUidToggle.addEventListener('change', () => {
+            localStorage.setItem('randomUidEnabled', randomUidToggle.checked);
+            // Clear fixed UIDs when switching to random mode
+            if (randomUidToggle.checked) {
+                fixedUids = {};
+            }
+        });
+
+        // Event listener for slot select change
+        slotSelect.addEventListener('change', updateSelectedSlotDetails);
+
+        // Event listeners for slot modal random UID toggle
+        slotRandomUidToggle.addEventListener('change', () => {
+            // Sync with main toggle preference
+            localStorage.setItem('randomUidEnabled', slotRandomUidToggle.checked);
+            randomUidToggle.checked = slotRandomUidToggle.checked;
+            // Clear fixed UIDs when switching to random mode
+            if (slotRandomUidToggle.checked) {
+                fixedUids = {};
+            }
+        });
+
+        // Event listeners for slot modal buttons
+        slotWriteBtn.addEventListener('click', async () => {
+            if (!selectedSlotAmiiboDetails || selectedSlotIndex === null) {
+                setSlotStatus('No slot selected.', 'error');
+                return;
+            }
+
+            try {
+                setSlotStatus('Generating and writing...');
+                const forceRandom = slotRandomUidToggle.checked;
+                const { pageData, uid } = await generateAmiiboData(selectedSlotAmiiboDetails, forceRandom);
+                await ultra.writeNtag215ToSlot(selectedSlotIndex, pageData, uid, selectedSlotAmiiboDetails.name);
+                setSlotStatus('Write successful!', 'success');
+                await refreshAmiiboSlots(); // Refresh slots after write
+                if (allAmiibos.length > 0) {
+                    await enhanceSlotCardsWithAmiiboInfo();
+                }
+                closeSlotModal(); // Close modal after successful write
+            } catch (error) {
+                console.error('Write Error:', error);
+                setSlotStatus('Write failed.', 'error');
+            }
+        });
+
+        slotEmulateBtn.addEventListener('click', async () => {
+            if (!selectedSlotAmiiboDetails || selectedSlotIndex === null) {
+                setSlotStatus('No slot selected.', 'error');
+                return;
+            }
+
+            try {
+                setSlotStatus('Generating and emulating...');
+                const forceRandom = slotRandomUidToggle.checked;
+                const { pageData, uid } = await generateAmiiboData(selectedSlotAmiiboDetails, forceRandom);
+                await ultra.emulateNtag215(selectedSlotIndex, pageData, uid);
+                setSlotStatus('Emulation started!', 'success');
+                await refreshAmiiboSlots(); // Refresh slots after emulate
+                if (allAmiibos.length > 0) {
+                    await enhanceSlotCardsWithAmiiboInfo();
+                }
+                closeSlotModal(); // Close modal after successful emulate
+            } catch (error) {
+                console.error('Emulation Error:', error);
+                setSlotStatus('Emulation failed.', 'error');
+            }
+        });
+
+
+        // Event listeners for slot modal close
+        slotCloseButton.addEventListener('click', closeSlotModal);
+        window.addEventListener('click', (event) => {
+            if (event.target == slotModal) {
+                closeSlotModal();
+            }
+        });
+
+
+        // Template generation functionality
+        // Removed template functionality - elements don't exist anymore
+
+        // Template generation removed - all related code commented out
+
+        /*
+        let currentTemplate = null;
+
+        generateTemplateBtn.addEventListener('click', () => {
+            try {
+                currentTemplate = createNTAG215WithUID();
+
+                templateInfo.innerHTML = `
+                    <strong>Generated Legal NTAG215 Template:</strong><br>
+                    Type: ${currentTemplate.info.type}<br>
+                    Size: ${currentTemplate.info.size} bytes<br>
+                    UID: ${currentTemplate.info.uidHex}<br>
+                    Password: ${currentTemplate.info.passwordHex}<br>
+                    <br>
+                    <strong>Structure Verification:</strong><br>
+                    CC (Page 3): ${Array.from(currentTemplate.template.slice(12, 16)).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' ')}<br>
+                    AUTH0: 0x${currentTemplate.template[527].toString(16).padStart(2, '0')}<br>
+                    ACCESS: 0x${currentTemplate.template[528].toString(16).padStart(2, '0')}<br>
+                    <br>
+                    <em>This template contains no copyrighted data and is based on public NXP NTAG215 specifications.</em>
+                `;
+
+                downloadTemplateBtn.style.display = 'inline-block';
+                uploadTemplateBtn.style.display = ultra ? 'inline-block' : 'none';
+
+            } catch (error) {
+                templateInfo.innerHTML = `<span style="color: red;">Error generating template: ${error.message}</span>`;
+            }
+        });
+
+        downloadTemplateBtn.addEventListener('click', () => {
+            if (!currentTemplate) {
+                alert('Generate a template first!');
+                return;
+            }
+
+            const blob = new Blob([currentTemplate.template], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ntag215-blank-${currentTemplate.info.uidHex.replace(/\s/g, '').replace(/0x/g, '')}.bin`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        uploadTemplateBtn.addEventListener('click', () => {
+            if (!currentTemplate || !ultra) {
+                alert('Generate a template and connect device first!');
+                return;
+            }
+
+            const slot = parseInt(prompt('Select slot (1-8) to write the blank NTAG215 template to:'));
+            if (slot >= 1 && slot <= 8) {
+                writeTemplateToSlot(slot - 1);
+            } else if (!isNaN(slot)) {
+                templateInfo.innerHTML = `<span style="color: red;">Invalid slot number. Please enter 1-8.</span>`;
+            }
+        });
+
+        async function writeTemplateToSlot(slotIndex) {
+            if (!currentTemplate || !ultra) {
+                templateInfo.innerHTML = `<span style="color: red;">No template generated or device not connected</span>`;
+                return;
+            }
+
+            try {
+                templateInfo.innerHTML = 'Writing blank NTAG215 template to slot...';
+
+                const templateName = `Blank-NTAG215-${currentTemplate.uid.slice(1, 4).map(b => b.toString(16).padStart(2, '0')).join('')}`;
+
+                // Use our proven upload method but with the template data
+                await ultra.writeBinToSlot(slotIndex, currentTemplate.template, templateName, null, new Uint8Array([0, 4, 4, 2, 1, 0, 17, 3]));
+
+                templateInfo.innerHTML = `<span style="color: green;">✅ Blank NTAG215 template written to slot ${slotIndex + 1} successfully!</span>`;
+
+                // Refresh the slots display
+                if (typeof loadSlots === 'function') {
+                    await loadSlots();
+                }
+
+            } catch (error) {
+                console.error('Template upload error:', error);
+                templateInfo.innerHTML = `<span style="color: red;">❌ Failed to write template: ${error.message}</span>`;
+            }
+        }
+        */
+
         // Event listener for closing the modal
         closeButton.addEventListener('click', closeModal);
         window.addEventListener('click', (event) => {
             if (event.target == amiiboModal) {
                 closeModal();
+            }
+        });
+
+        // Clear Slot Modal Event Listeners
+        clearCloseButton.addEventListener('click', closeClearSlotModal);
+        clearCancelBtn.addEventListener('click', closeClearSlotModal);
+        clearConfirmBtn.addEventListener('click', async () => {
+            const slotIndex = parseInt(clearConfirmBtn.dataset.slotIndex);
+            if (!isNaN(slotIndex)) {
+                // Close modal immediately and show clearing status
+                closeClearSlotModal();
+                setUploadStatus(`Clearing slot ${slotIndex + 1}...`);
+
+                // Then execute the clear operation
+                await clearSlot(slotIndex);
+            }
+        });
+
+        // Download Modal Event Listeners
+        downloadCloseButton.addEventListener('click', closeDownloadModal);
+        downloadCancelBtn.addEventListener('click', closeDownloadModal);
+
+        // Close modals when clicking outside
+        window.addEventListener('click', (event) => {
+            if (event.target == clearSlotModal) {
+                closeClearSlotModal();
+            }
+            if (event.target == downloadModal) {
+                closeDownloadModal();
             }
         });
 
