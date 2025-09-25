@@ -1372,7 +1372,7 @@
                 updateUploadProgress('Writing updated amiibo...', 90, 'Writing amiibo with new UID to device');
 
                 // Write the newly generated data with fresh UID
-                await ultra.writeBinToSlot(slotIndex, generatedData.pageData, slotName + ' (New UID)', null, new Uint8Array([0, 4, 4, 2, 1, 0, 17, 3]));
+                await ultra.writeBinToSlot(slotIndex, generatedData.pageData, slotName, null, new Uint8Array([0, 4, 4, 2, 1, 0, 17, 3]));
 
                 updateUploadProgress('UID randomized!', 100, 'Successfully generated with new random UID');
 
