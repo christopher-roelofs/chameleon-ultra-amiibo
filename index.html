@@ -322,6 +322,7 @@
     <div id="notification-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000; max-width: 400px;"></div>
 
     <button id="connect-btn">Connect to Chameleon Ultra</button>
+    <button id="refresh-slots-btn" style="margin-left: 10px; display: none;">Refresh Slots</button>
 
     <div style="margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9;">
         <h3 style="margin-top: 0;">Retail Key Status</h3>
@@ -569,6 +570,7 @@
     <script src="maboii.js"></script>
     <script>
         const connectBtn = document.getElementById('connect-btn');
+        const refreshSlotsBtn = document.getElementById('refresh-slots-btn');
         const amiiboDetails = document.getElementById('amiibo-details');
         const amiiboDetailsImage = document.getElementById('amiibo-details-image');
         const detailName = document.getElementById('detail-name');
@@ -899,6 +901,7 @@
             console.log('Device disconnected');
             connectBtn.textContent = 'Connect to Chameleon Ultra';
             connectBtn.disabled = false;
+            refreshSlotsBtn.style.display = 'none';
             amiiboSlotsDiv.style.display = 'none';
             statusSection.style.display = 'none';
             closeModal(); // Close modal on disconnect
@@ -1319,22 +1322,18 @@
 
             updateUploadProgress('Upload complete!', 100, 'Amiibo successfully written to device');
 
-            // Show refreshing message after a brief delay
+            // Close progress modal immediately and show success
             setTimeout(() => {
-                updateUploadProgress('Refreshing slots...', 100, 'Updating slot information');
+                hideUploadProgress();
+                setUploadStatus(`Successfully uploaded ${file.name} to slot ${slotIndex + 1}`, 'success');
             }, 1000);
 
-            // Refresh the slots display
+            // Refresh the slots display in background (non-blocking)
             setTimeout(async () => {
                 await refreshAmiiboSlots();
                 if (allAmiibos.length > 0) {
                     await enhanceSlotCardsWithAmiiboInfo();
                 }
-
-                setTimeout(() => {
-                    hideUploadProgress();
-                    setUploadStatus(`Successfully uploaded ${file.name} to slot ${slotIndex + 1}`, 'success');
-                }, 500);
             }, 1500);
         }
 
@@ -1377,22 +1376,18 @@
 
                 updateUploadProgress('UID randomized!', 100, 'Successfully generated with new random UID');
 
-                // Show refreshing message after a brief delay
+                // Close progress modal immediately and show success
                 setTimeout(() => {
-                    updateUploadProgress('Refreshing slots...', 100, 'Updating slot information');
+                    hideUploadProgress();
+                    setUploadStatus(`Successfully randomized UID for ${slotName}`, 'success');
                 }, 1000);
 
-                // Refresh the slots display
+                // Refresh the slots display in background (non-blocking)
                 setTimeout(async () => {
                     await refreshAmiiboSlots();
                     if (allAmiibos.length > 0) {
                         await enhanceSlotCardsWithAmiiboInfo();
                     }
-
-                    setTimeout(() => {
-                        hideUploadProgress();
-                        setUploadStatus(`Successfully randomized UID for ${slotName}`, 'success');
-                    }, 500);
                 }, 1500);
 
             } catch (error) {
@@ -2730,32 +2725,67 @@
 
         connectBtn.addEventListener('click', async () => {
             try {
-                showUploadProgress('Connecting to Chameleon Ultra...', 0, 'Searching for Bluetooth device', 'Device Setup');
+                showUploadProgress('Connecting to Chameleon Ultra...', 20, 'Searching for Bluetooth device', 'Device Setup');
                 ultra = new ChameleonUltra();
                 await ultra.connect();
+
+                updateUploadProgress('Connected!', 100, 'Device connected successfully');
                 connectBtn.textContent = 'Connected';
                 connectBtn.disabled = true;
+                refreshSlotsBtn.style.display = 'inline-block';
 
-                updateUploadProgress('Loading slot information...', 30, 'Reading device configuration');
-                // 1. First, display basic slot cards immediately
-                await refreshAmiiboSlots();
-
-                updateUploadProgress('Loading Amiibo database...', 60, 'Downloading from API');
-                // 2. Then load Amiibo database and enhance cards with rich info
-                await loadAmiiboList();
-
-                updateUploadProgress('Enhancing cards...', 90, 'Adding Amiibo images and details');
-                await enhanceSlotCardsWithAmiiboInfo();
-
-                updateUploadProgress('Setup complete!', 100, 'Ready to manage Amiibo tags');
+                // Close progress modal immediately and show success
                 setTimeout(() => {
                     hideUploadProgress();
                     setUploadStatus('Connected to Chameleon Ultra', 'success');
                 }, 1000);
+
+                // Load slot information and enhance in background (non-blocking)
+                setTimeout(async () => {
+                    try {
+                        // 1. First, display basic slot cards immediately
+                        await refreshAmiiboSlots();
+
+                        // 2. Then load Amiibo database and enhance cards with rich info
+                        await loadAmiiboList();
+                        await enhanceSlotCardsWithAmiiboInfo();
+                    } catch (error) {
+                        console.error('Error loading slot information:', error);
+                        // Don't show error to user since connection was successful
+                    }
+                }, 1500);
+
             } catch (error) {
                 console.error('Error:', error);
                 hideUploadProgress();
                 setUploadStatus('Connection Failed', 'error');
+            }
+        });
+
+        // Refresh slots button functionality
+        refreshSlotsBtn.addEventListener('click', async () => {
+            if (!ultra || !ultra.device || !ultra.device.gatt.connected) {
+                setUploadStatus('Device not connected', 'error');
+                return;
+            }
+
+            try {
+                setUploadStatus('Refreshing slots...', 'info');
+                refreshSlotsBtn.disabled = true;
+                refreshSlotsBtn.textContent = 'Refreshing...';
+
+                await refreshAmiiboSlots();
+                await loadAmiiboList();
+                await enhanceSlotCardsWithAmiiboInfo();
+
+                setUploadStatus('Slots refreshed successfully', 'success');
+
+            } catch (error) {
+                console.error('Error refreshing slots:', error);
+                setUploadStatus(`Failed to refresh slots: ${error.message}`, 'error');
+            } finally {
+                refreshSlotsBtn.disabled = false;
+                refreshSlotsBtn.textContent = 'Refresh Slots';
             }
         });
 
@@ -3398,23 +3428,19 @@
 
                 updateUploadProgress('Generation complete!', 100, 'Amiibo written to slot successfully!');
 
-                // Show refreshing message after a brief delay
+                // Close progress modal and generate modal immediately, show success
                 setTimeout(() => {
-                    updateUploadProgress('Refreshing slots...', 100, 'Updating slot information');
+                    hideUploadProgress();
+                    closeGenerateModal();
+                    setUploadStatus(`Successfully generated ${selectedAmiiboForGeneration.name} to slot ${generateTargetSlot + 1}`, 'success');
                 }, 1000);
 
-                // Refresh the slots display
+                // Refresh the slots display in background (non-blocking)
                 setTimeout(async () => {
                     await refreshAmiiboSlots();
                     if (allAmiibos.length > 0) {
                         await enhanceSlotCardsWithAmiiboInfo();
                     }
-
-                    setTimeout(() => {
-                        hideUploadProgress();
-                        closeGenerateModal();
-                        setUploadStatus(`Successfully generated ${selectedAmiiboForGeneration.name} to slot ${generateTargetSlot + 1}`, 'success');
-                    }, 500);
                 }, 1500);
 
             } catch (error) {
