@@ -318,8 +318,13 @@
 <body>
     <h1>Chameleon Ultra Amiibo Emulator</h1>
 
+    <!-- Battery Status -->
+    <div id="battery-status" style="position: fixed; top: 20px; right: 20px; z-index: 1001; background: rgba(255,255,255,0.9); padding: 8px 12px; border-radius: 20px; border: 1px solid #ddd; font-size: 0.9em; display: none; backdrop-filter: blur(5px);">
+        <span id="battery-icon">🔋</span> <span id="battery-text">---%</span>
+    </div>
+
     <!-- Notification Container -->
-    <div id="notification-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000; max-width: 400px;"></div>
+    <div id="notification-container" style="position: fixed; top: 60px; right: 20px; z-index: 1000; max-width: 400px;"></div>
 
     <button id="connect-btn">Connect to Chameleon Ultra</button>
     <button id="refresh-slots-btn" style="margin-left: 10px; display: none;">Refresh Slots</button>
@@ -571,6 +576,9 @@
     <script>
         const connectBtn = document.getElementById('connect-btn');
         const refreshSlotsBtn = document.getElementById('refresh-slots-btn');
+        const batteryStatus = document.getElementById('battery-status');
+        const batteryIcon = document.getElementById('battery-icon');
+        const batteryText = document.getElementById('battery-text');
         const amiiboDetails = document.getElementById('amiibo-details');
         const amiiboDetailsImage = document.getElementById('amiibo-details-image');
         const detailName = document.getElementById('detail-name');
@@ -679,6 +687,7 @@
         const CMD_SET_SLOT_DATA_DEFAULT = 1005;
         const CMD_SET_SLOT_ENABLE = 1006;
         const CMD_DELETE_SLOT_INFO = 1024;
+        const CMD_GET_BATTERY_INFO = 1025;
         const CMD_MF1_SET_ANTICOLLISION = 4001;
         const CMD_MF0_NTAG_WRITE_EMU_PAGE_DATA = 4022;
         const CMD_MF0_NTAG_READ_EMU_PAGE_DATA = 4021;
@@ -897,11 +906,38 @@
         randomUidToggle.checked = localStorage.getItem('randomUidEnabled') !== 'false'; // Default to true
         slotRandomUidToggle.checked = localStorage.getItem('randomUidEnabled') !== 'false'; // Sync with main toggle
 
+        function updateBatteryDisplay(voltage, percentage) {
+            batteryText.textContent = `${percentage}%`;
+
+            // Update icon based on percentage
+            if (percentage <= 20) {
+                batteryIcon.textContent = '🪫'; // Low battery
+                batteryStatus.style.borderColor = '#dc3545';
+                batteryStatus.style.background = 'rgba(255,240,240,0.9)';
+            } else if (percentage <= 50) {
+                batteryIcon.textContent = '🔋'; // Medium battery
+                batteryStatus.style.borderColor = '#ffc107';
+                batteryStatus.style.background = 'rgba(255,252,240,0.9)';
+            } else {
+                batteryIcon.textContent = '🔋'; // Good battery
+                batteryStatus.style.borderColor = '#28a745';
+                batteryStatus.style.background = 'rgba(240,255,240,0.9)';
+            }
+
+            batteryStatus.title = `Battery: ${percentage}% (${voltage}mV)`;
+            batteryStatus.style.display = 'block';
+        }
+
+        function hideBatteryDisplay() {
+            batteryStatus.style.display = 'none';
+        }
+
         function onDisconnected() {
             console.log('Device disconnected');
             connectBtn.textContent = 'Connect to Chameleon Ultra';
             connectBtn.disabled = false;
             refreshSlotsBtn.style.display = 'none';
+            hideBatteryDisplay();
             amiiboSlotsDiv.style.display = 'none';
             statusSection.style.display = 'none';
             closeModal(); // Close modal on disconnect
@@ -1693,6 +1729,15 @@
             async getVersionData() {
                 const response = await this.sendCommand(CMD_MF0_NTAG_GET_VERSION_DATA);
                 return new Uint8Array(response.buffer, response.byteOffset, 8);
+            }
+
+            async getBatteryInfo() {
+                const response = await this.sendCommand(CMD_GET_BATTERY_INFO);
+                console.log('Battery response bytes:', Array.from(new Uint8Array(response.buffer)).map(b => `0x${b.toString(16).padStart(2, '0')}`));
+                const voltage = response.getUint16(0, false); // Big endian (false)
+                const percentage = response.getUint8(2);
+                console.log('Parsed battery data:', { voltage, percentage });
+                return { voltage, percentage };
             }
 
             async readNtagPages(startPage, numPages) {
@@ -2740,13 +2785,17 @@
                     setUploadStatus('Connected to Chameleon Ultra', 'success');
                 }, 1000);
 
-                // Load slot information and enhance in background (non-blocking)
+                // Load slot information and battery info in background (non-blocking)
                 setTimeout(async () => {
                     try {
-                        // 1. First, display basic slot cards immediately
+                        // 1. Get battery info and display it
+                        const battery = await ultra.getBatteryInfo();
+                        updateBatteryDisplay(battery.voltage, battery.percentage);
+
+                        // 2. Display basic slot cards immediately
                         await refreshAmiiboSlots();
 
-                        // 2. Then load Amiibo database and enhance cards with rich info
+                        // 3. Then load Amiibo database and enhance cards with rich info
                         await loadAmiiboList();
                         await enhanceSlotCardsWithAmiiboInfo();
                     } catch (error) {
@@ -2773,6 +2822,10 @@
                 setUploadStatus('Refreshing slots...', 'info');
                 refreshSlotsBtn.disabled = true;
                 refreshSlotsBtn.textContent = 'Refreshing...';
+
+                // Update battery info
+                const battery = await ultra.getBatteryInfo();
+                updateBatteryDisplay(battery.voltage, battery.percentage);
 
                 await refreshAmiiboSlots();
                 await loadAmiiboList();
