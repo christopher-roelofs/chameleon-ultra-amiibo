@@ -675,6 +675,79 @@
             };
         }
 
+        function parseNfcFile(textData) {
+            // Parse Flipper Zero .nfc file format
+            const lines = textData.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+            let deviceType = '';
+            let uid = [];
+            let atqa = [];
+            let sak = 0;
+            let pages = [];
+            let ultralightVersion = null;
+
+            // Parse each line
+            for (const line of lines) {
+                if (line.startsWith('Device type:')) {
+                    deviceType = line.split(':')[1].trim();
+                } else if (line.startsWith('UID:')) {
+                    uid = line.split(':')[1].trim().split(' ').map(hex => parseInt(hex, 16));
+                } else if (line.startsWith('ATQA:')) {
+                    atqa = line.split(':')[1].trim().split(' ').map(hex => parseInt(hex, 16));
+                } else if (line.startsWith('SAK:')) {
+                    sak = parseInt(line.split(':')[1].trim(), 16);
+                } else if (line.startsWith('Mifare version:')) {
+                    ultralightVersion = new Uint8Array(line.split(':')[1].trim().split(' ').map(hex => parseInt(hex, 16)));
+                } else if (line.startsWith('Page ')) {
+                    const match = line.match(/Page (\d+): (.+)/);
+                    if (match) {
+                        const pageNum = parseInt(match[1]);
+                        const pageData = match[2].trim().split(' ').map(hex => parseInt(hex, 16));
+                        pages[pageNum] = pageData;
+                    }
+                }
+            }
+
+            // Validate device type
+            if (deviceType !== 'NTAG215') {
+                throw new Error(`Unsupported device type: ${deviceType}. Only NTAG215 is supported.`);
+            }
+
+            // Validate we have enough pages (NTAG215 should have 135 pages, 0-134)
+            if (pages.length < 135) {
+                throw new Error(`Invalid .nfc file: Missing pages. Expected 135 pages, got ${pages.length}`);
+            }
+
+            // Convert pages to 540-byte data array
+            const fullData = new Uint8Array(540);
+            for (let i = 0; i < 135; i++) {
+                if (pages[i]) {
+                    for (let j = 0; j < 4; j++) {
+                        fullData[i * 4 + j] = pages[i][j] || 0;
+                    }
+                }
+            }
+
+            // Extract Amiibo ID (pages 21-22, bytes 84-91)
+            const amiiboId = fullData.slice(84, 92);
+            const amiiboIdHex = Array.from(amiiboId, byte => byte.toString(16).padStart(2, '0')).join('').toUpperCase();
+
+            return {
+                fullData: fullData,
+                uid: new Uint8Array(uid),
+                amiiboId: amiiboId,
+                amiiboIdHex: amiiboIdHex,
+                atqa: new Uint8Array(atqa),
+                sak: sak,
+                ats: null, // NFC files don't typically include ATS
+                ultralightVersion: ultralightVersion || new Uint8Array([0, 4, 4, 2, 1, 0, 17, 3]), // Default NTAG215 version
+                signatureData: null, // NFC files don't include signatures
+                fileType: 'nfc',
+                size: 540,
+                hasSignature: false
+            };
+        }
+
         function patchAmiiboData(binData) {
             // This function patches the Amiibo data similar to the Python patch.py script
             // It generates a password based on the UID and appends it with padding
@@ -1341,12 +1414,12 @@
                     const uploadLi = document.createElement('li');
                     const uploadLink = document.createElement('a');
                     uploadLink.href = '#';
-                    uploadLink.textContent = 'Upload .bin';
+                    uploadLink.textContent = 'Upload';
 
                     // Create hidden file input for this slot
                     const fileInput = document.createElement('input');
                     fileInput.type = 'file';
-                    fileInput.accept = '.bin';
+                    fileInput.accept = '.bin,.nfc';
                     fileInput.className = 'upload-input';
                     fileInput.id = `upload-input-${i}`;
 
@@ -1639,8 +1712,9 @@
                 return;
             }
 
-            if (!file.name.toLowerCase().endsWith('.bin')) {
-                setUploadStatus('Please select a .bin file', 'error');
+            const fileName = file.name.toLowerCase();
+            if (!fileName.endsWith('.bin') && !fileName.endsWith('.nfc')) {
+                setUploadStatus('Please select a .bin or .nfc file', 'error');
                 return;
             }
 
@@ -1651,9 +1725,11 @@
                 const reader = new FileReader();
                 reader.onload = async (e) => {
                     try {
-                        updateUploadProgress('Processing file...', 20, 'Parsing .bin file format');
-                        const parsedBin = parseBinFile(e.target.result);
-                        const fileName = file.name.replace('.bin', '');
+                        const isNfcFile = file.name.toLowerCase().endsWith('.nfc');
+                        updateUploadProgress('Processing file...', 20, `Parsing ${isNfcFile ? '.nfc' : '.bin'} file format`);
+
+                        const parsedBin = isNfcFile ? parseNfcFile(e.target.result) : parseBinFile(e.target.result);
+                        const fileName = file.name.replace(/\.(bin|nfc)$/i, '');
 
                         updateUploadProgress('Patching data...', 40, 'Optimizing for Nintendo Switch compatibility');
                         // Patch the Amiibo data for Switch compatibility
@@ -1681,7 +1757,13 @@
                         setUploadStatus(`Failed to upload ${file.name}: ${error.message}`, 'error');
                     }
                 };
-                reader.readAsArrayBuffer(file);
+                // Read file based on type
+                const isNfcFile = file.name.toLowerCase().endsWith('.nfc');
+                if (isNfcFile) {
+                    reader.readAsText(file);
+                } else {
+                    reader.readAsArrayBuffer(file);
+                }
 
             } catch (error) {
                 console.error('File read error:', error);
