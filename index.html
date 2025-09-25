@@ -3203,8 +3203,7 @@
             amiiboSearch.value = '';
             gameSeriesFilter.value = '';
             sortOption.value = 'newest';
-            amiiboSearchResults.style.display = 'none';
-            resultsInfo.style.display = 'none';
+            performSearch(''); // Show all amiibos like when modal opens
         });
 
         let allAmiiboData = [];
