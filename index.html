@@ -3115,7 +3115,6 @@
         // Amiibo search functionality
         let searchTimeout = null;
         let gameSeriesSet = new Set();
-        let allAmiiboData = [];
 
         amiiboSearch.addEventListener('input', (e) => {
             const query = e.target.value.trim();
@@ -3139,29 +3138,23 @@
         });
 
         async function loadAmiiboDatabase() {
-            if (allAmiiboData.length === 0) {
-                try {
-                    const response = await fetch('https://www.amiiboapi.com/api/amiibo');
-                    const data = await response.json();
-                    allAmiiboData = data.amiibo;
+            // Use the existing loadAmiiboList function and data
+            await loadAmiiboList();
 
-                    // Build game series list
-                    gameSeriesSet.clear();
-                    allAmiiboData.forEach(amiibo => gameSeriesSet.add(amiibo.gameSeries));
+            if (allAmiibos.length > 0) {
+                // Build game series list from allAmiibos
+                gameSeriesSet.clear();
+                allAmiibos.forEach(amiibo => gameSeriesSet.add(amiibo.gameSeries));
 
-                    // Populate game series dropdown
-                    const sortedSeries = Array.from(gameSeriesSet).sort();
-                    gameSeriesFilter.innerHTML = '<option value="">All Game Series</option>';
-                    sortedSeries.forEach(series => {
-                        const option = document.createElement('option');
-                        option.value = series;
-                        option.textContent = series;
-                        gameSeriesFilter.appendChild(option);
-                    });
-                } catch (error) {
-                    console.error('Error loading amiibo database:', error);
-                    setGenerateStatus('Error loading amiibo database', 'error');
-                }
+                // Populate game series dropdown
+                const sortedSeries = Array.from(gameSeriesSet).sort();
+                gameSeriesFilter.innerHTML = '<option value="">All Game Series</option>';
+                sortedSeries.forEach(series => {
+                    const option = document.createElement('option');
+                    option.value = series;
+                    option.textContent = series;
+                    gameSeriesFilter.appendChild(option);
+                });
             }
             return Promise.resolve();
         }
@@ -3169,7 +3162,7 @@
         function performSearch(query = null) {
             if (query === null) query = amiiboSearch.value.trim();
 
-            if (allAmiiboData.length === 0) {
+            if (allAmiibos.length === 0) {
                 loadAmiiboDatabase().then(() => performSearch(query));
                 return;
             }
@@ -3177,7 +3170,7 @@
             // Always show results when modal is open
             // Empty query shows all amiibos
 
-            let filteredAmiibos = allAmiiboData;
+            let filteredAmiibos = allAmiibos;
 
             // Apply text search filter
             if (query.length > 0) {
