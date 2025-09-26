@@ -830,6 +830,18 @@
         let amiiboTemplate = null;
         let currentSlotNames = []; // Store slot names globally
 
+        // Slot data caching system
+        let slotDataCache = {}; // Cache slot data by slot index
+
+        // Cache structure for each slot:
+        // slotDataCache[slotIndex] = {
+        //     slotName: "Amiibo Name",
+        //     amiiboId: "2106000003601202",
+        //     amiiboDetails: { name, series, image, etc },
+        //     lastUpdated: timestamp,
+        //     deviceSignature: "hash of device data for validation"
+        // }
+
         // Maboii.js keys management
         let maboiiKeys = null;
         let keysLoaded = false;
@@ -839,6 +851,55 @@
             // Remove file extension (.bin, .nfc, etc.)
             const nameWithoutExt = filename.replace(/\.[^/.]+$/, '');
             return nameWithoutExt;
+        }
+
+        // Slot data caching functions
+        function generateDeviceSignature(slotName, amiiboId) {
+            // Create a simple hash of the device data for cache validation
+            return btoa(`${slotName}:${amiiboId}`).replace(/[^a-zA-Z0-9]/g, '');
+        }
+
+        function getCachedSlotData(slotIndex) {
+            return slotDataCache[slotIndex] || null;
+        }
+
+        function setCachedSlotData(slotIndex, slotName, amiiboId, amiiboDetails) {
+            slotDataCache[slotIndex] = {
+                slotName: slotName,
+                amiiboId: amiiboId,
+                amiiboDetails: amiiboDetails,
+                lastUpdated: Date.now(),
+                deviceSignature: generateDeviceSignature(slotName, amiiboId)
+            };
+            console.log(`💾 Cached data for slot ${slotIndex + 1}: ${slotName} (ID: ${amiiboId})`);
+        }
+
+        function validateCachedSlotData(slotIndex, currentSlotName, currentAmiiboId) {
+            const cached = getCachedSlotData(slotIndex);
+            if (!cached) return false;
+
+            const currentSignature = generateDeviceSignature(currentSlotName, currentAmiiboId);
+            const isValid = cached.deviceSignature === currentSignature;
+
+            if (!isValid) {
+                console.log(`🔄 Cache invalid for slot ${slotIndex + 1}: cached="${cached.slotName}" vs current="${currentSlotName}"`);
+                // Remove invalid cache entry
+                delete slotDataCache[slotIndex];
+            } else {
+                console.log(`✅ Cache valid for slot ${slotIndex + 1}: ${cached.slotName}`);
+            }
+
+            return isValid;
+        }
+
+        function clearSlotCache(slotIndex = null) {
+            if (slotIndex !== null) {
+                delete slotDataCache[slotIndex];
+                console.log(`🗑️ Cleared cache for slot ${slotIndex + 1}`);
+            } else {
+                slotDataCache = {};
+                console.log(`🗑️ Cleared all slot cache`);
+            }
         }
 
         // No need to store IDs separately - we'll read from the card display
@@ -2484,6 +2545,9 @@
                 }
 
                 console.log(`📝 Slot ${slot} (displayed as Slot ${slot + 1} in UI) setup completed with nickname: "${name}"`);
+
+                // Clear cache for this slot since new data was written
+                clearSlotCache(slot);
             }
         }
 
@@ -2669,8 +2733,13 @@
             ];
         }
 
-        async function refreshAmiiboSlots() {
+        async function refreshAmiiboSlots(clearCache = false) {
             console.log('🔄 refreshAmiiboSlots() called');
+
+            if (clearCache) {
+                clearSlotCache(); // Clear all cache
+                console.log('🧹 Cleared all slot cache as requested');
+            }
 
             if (!ultra || !ultra.device || !ultra.device.gatt.connected) {
                 console.log('❌ Device not connected, hiding slots');
@@ -2884,6 +2953,9 @@
         async function clearSlot(slotIndex) {
             try {
                 showUploadProgress(`Clearing slot ${slotIndex + 1}`, 0, 'Removing Amiibo data...', 'Clearing Slot');
+
+                // Clear cache for this slot since we're deleting its data
+                clearSlotCache(slotIndex);
 
                 // Delete slot info (this properly removes the slot data)
                 updateUploadProgress('Deleting slot data...', 20, 'Removing all Amiibo information');
@@ -3307,6 +3379,10 @@
                     return null;
                 }
 
+                // Get current slot name for cache validation
+                const slotNames = await ultra.getSlotNames();
+                const currentSlotName = slotNames[slotIndex]?.hfName || '';
+
                 console.log(`Setting slot ${slotIndex + 1} as active to read Amiibo data...`);
                 // Set the slot as active to read from it
                 const activateSlotData = new Uint8Array([slotIndex]);
@@ -3336,10 +3412,25 @@
                         return null;
                     }
 
-                    // Find the Amiibo in our database
+                    // Check cache first - validate with current device data
+                    if (validateCachedSlotData(slotIndex, currentSlotName, amiiboIdHex)) {
+                        const cached = getCachedSlotData(slotIndex);
+                        console.log(`🚀 Using cached data for slot ${slotIndex + 1}: ${cached.amiiboDetails.name}`);
+                        return {
+                            ...cached.amiiboDetails,
+                            extractedId: amiiboIdHex
+                        };
+                    }
+
+                    // Cache miss or invalid - fetch from API
+                    console.log(`🌐 Fetching fresh data from API for slot ${slotIndex + 1}...`);
                     const amiiboInfo = findAmiiboByID(amiiboIdHex);
                     if (amiiboInfo) {
                         console.log(`✓ Found Amiibo match for slot ${slotIndex + 1}: ${amiiboInfo.name}`);
+
+                        // Cache the result
+                        setCachedSlotData(slotIndex, currentSlotName, amiiboIdHex, amiiboInfo);
+
                         return {
                             ...amiiboInfo,
                             extractedId: amiiboIdHex
@@ -4004,31 +4095,99 @@
 
         let allAmiiboData = [];
 
+        // Amiibo database caching
+        let amiiboDataCache = {
+            data: [],
+            gameSeriesList: [],
+            lastFetched: null,
+            cacheExpiry: 30 * 60 * 1000 // 30 minutes in milliseconds
+        };
+
+        function isCacheValid() {
+            if (!amiiboDataCache.lastFetched) return false;
+            const now = Date.now();
+            const isValid = (now - amiiboDataCache.lastFetched) < amiiboDataCache.cacheExpiry;
+            if (!isValid) {
+                console.log('🕒 Amiibo cache expired, will fetch fresh data');
+            }
+            return isValid;
+        }
+
+        function setCachedAmiiboData(data) {
+            // Build game series list
+            gameSeriesSet.clear();
+            data.forEach(amiibo => gameSeriesSet.add(amiibo.gameSeries));
+            const sortedSeries = Array.from(gameSeriesSet).sort();
+
+            // Update cache
+            amiiboDataCache.data = data;
+            amiiboDataCache.gameSeriesList = sortedSeries;
+            amiiboDataCache.lastFetched = Date.now();
+
+            // Update global variables
+            allAmiiboData = data;
+
+            console.log(`💾 Cached ${data.length} amiibos with ${sortedSeries.length} game series`);
+        }
+
+        function getCachedAmiiboData() {
+            if (isCacheValid() && amiiboDataCache.data.length > 0) {
+                console.log(`🚀 Using cached amiibo data (${amiiboDataCache.data.length} amiibos)`);
+
+                // Restore global variables from cache
+                allAmiiboData = amiiboDataCache.data;
+                gameSeriesSet.clear();
+                amiiboDataCache.gameSeriesList.forEach(series => gameSeriesSet.add(series));
+
+                return true;
+            }
+            return false;
+        }
+
         async function loadAmiiboDatabase() {
-            if (allAmiiboData.length === 0) {
-                try {
-                    const response = await fetch('https://www.amiiboapi.com/api/amiibo/');
-                    const data = await response.json();
-                    allAmiiboData = data.amiibo;
+            // Try to use cached data first
+            if (getCachedAmiiboData()) {
+                // Populate dropdown from cache
+                populateGameSeriesDropdown();
+                return Promise.resolve();
+            }
 
-                    // Build game series list
-                    gameSeriesSet.clear();
-                    allAmiiboData.forEach(amiibo => gameSeriesSet.add(amiibo.gameSeries));
+            // Cache miss or expired - fetch from API
+            try {
+                console.log('🌐 Fetching fresh amiibo data from API...');
+                const response = await fetch('https://www.amiiboapi.com/api/amiibo/');
+                const data = await response.json();
 
-                    // Populate game series dropdown
-                    const sortedSeries = Array.from(gameSeriesSet).sort();
-                    gameSeriesFilter.innerHTML = '<option value="">All Game Series</option>';
-                    sortedSeries.forEach(series => {
-                        const option = document.createElement('option');
-                        option.value = series;
-                        option.textContent = series;
-                        gameSeriesFilter.appendChild(option);
-                    });
-                } catch (error) {
-                    console.error('Error loading amiibo database:', error);
-                }
+                // Cache the fresh data
+                setCachedAmiiboData(data.amiibo);
+
+                // Populate dropdown
+                populateGameSeriesDropdown();
+
+                console.log(`✅ Loaded ${data.amiibo.length} amiibos from API`);
+            } catch (error) {
+                console.error('Error loading amiibo database:', error);
             }
             return Promise.resolve();
+        }
+
+        function populateGameSeriesDropdown() {
+            gameSeriesFilter.innerHTML = '<option value="">All Game Series</option>';
+            amiiboDataCache.gameSeriesList.forEach(series => {
+                const option = document.createElement('option');
+                option.value = series;
+                option.textContent = series;
+                gameSeriesFilter.appendChild(option);
+            });
+        }
+
+        function clearAmiiboCache() {
+            amiiboDataCache.data = [];
+            amiiboDataCache.gameSeriesList = [];
+            amiiboDataCache.lastFetched = null;
+            allAmiiboData = [];
+            gameSeriesSet.clear();
+            console.log('🗑️ Cleared amiibo database cache');
         }
 
         function performSearch(query = null) {
