@@ -689,6 +689,10 @@
         const CMD_DELETE_SLOT_INFO = 1024;
         const CMD_GET_BATTERY_INFO = 1025;
         const CMD_MF1_SET_ANTICOLLISION = 4001;
+
+        // Tag type constants
+        const TAG_TYPE_UNDEFINED = 0;
+        const TAG_TYPE_NTAG_215 = 1101;
         const CMD_MF0_NTAG_WRITE_EMU_PAGE_DATA = 4022;
         const CMD_MF0_NTAG_READ_EMU_PAGE_DATA = 4021;
         const CMD_MF0_NTAG_GET_VERSION_DATA = 4023;
@@ -2102,9 +2106,21 @@
                 const activeSlot = await ultra.getActiveSlot();
                 currentSlotNames = slotNames; // Store slot names globally
 
+                // Parse slot info to identify which slots have Amiibos
+                const slotsWithAmiibos = [];
+                for (let i = 0; i < 8; i++) {
+                    const hfTagType = responseSlotInfo.getUint16(i * 4, false);
+                    const slotName = slotNames[i].hfName || '';
+                    const hasAmiibo = hfTagType === TagType.NTAG_215 && slotName;
+                    if (hasAmiibo) {
+                        slotsWithAmiibos.push(i);
+                    }
+                }
+
                 console.log('📊 Device data received:');
                 console.log('- Active slot:', activeSlot);
                 console.log('- Slot names:', slotNames);
+                console.log('- Slots with Amiibos:', slotsWithAmiibos);
                 console.log('- Amiibo database size:', allAmiibos.length);
 
                 amiiboSlotsList.innerHTML = '';
@@ -2113,7 +2129,7 @@
                 for (let i = 0; i < 8; i++) {
                     const hfTagType = responseSlotInfo.getUint16(i * 4, false);
                     const slotName = slotNames[i].hfName || '';
-                    const isEmpty = !slotName || hfTagType !== TagType.NTAG_215;
+                    const isEmpty = !slotsWithAmiibos.includes(i);
                     const isActive = (i === activeSlot);
 
                     // Create slot card
@@ -2576,9 +2592,24 @@
 
             console.log('🎨 Enhancing slot cards with rich Amiibo information...');
 
-            // Get the original active slot before we start switching slots to read data
+            // Get slot info to identify which slots have Amiibos (avoid unnecessary activations)
+            const responseSlotInfo = await ultra.sendCommand(CMD_GET_SLOT_INFO);
+            const slotNames = await ultra.getSlotNames();
             const originalActiveSlot = await ultra.getActiveSlot();
+
+            // Identify slots with Amiibo data
+            const slotsWithAmiibos = [];
+            for (let i = 0; i < 8; i++) {
+                const hfTagType = responseSlotInfo.getUint16(i * 4, false);
+                const slotName = slotNames[i].hfName || '';
+                const hasAmiibo = hfTagType === TagType.NTAG_215 && slotName;
+                if (hasAmiibo) {
+                    slotsWithAmiibos.push(i);
+                }
+            }
+
             console.log(`📍 Original active slot: ${originalActiveSlot}`);
+            console.log(`🎯 Slots to enhance: [${slotsWithAmiibos.join(', ')}] (skipping ${8 - slotsWithAmiibos.length} empty slots)`);
 
             const slotCards = document.querySelectorAll('.slot');
 
@@ -2586,8 +2617,8 @@
                 const slotCard = slotCards[i];
                 const summaryElement = slotCard.querySelector('.slot-summary');
 
-                // Skip empty slots or slots that already have rich content
-                if (slotCard.classList.contains('slot-empty') ||
+                // Skip slots that don't have Amiibo data or already have rich content
+                if (!slotsWithAmiibos.includes(i) ||
                     (summaryElement && summaryElement.innerHTML.includes('<div'))) {
                     continue;
                 }
