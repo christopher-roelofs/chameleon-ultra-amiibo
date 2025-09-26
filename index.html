@@ -392,11 +392,57 @@
         .recent-amiibo-card, .favorite-amiibo-card {
             position: relative;
         }
+
+        /* Glass button hover effects */
+        .glass-btn {
+            background: rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.1);
+            color: #495057;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .glass-btn:hover {
+            background: rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.15);
+            transform: translateY(-1px);
+            color: #212529;
+        }
+
+        .glass-btn:active {
+            transform: translateY(0);
+        }
     </style>
 
 </head>
 <body>
-    <h1>Chameleon Ultra Amiibo Emulator</h1>
+    <!-- Header Section -->
+    <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); color: #333; padding: 20px; margin-bottom: 20px; border-bottom: 1px solid #dee2e6;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+            <!-- Title -->
+            <h1 style="margin: 0; font-size: 1.8em; font-weight: 300;">Chameleon Ultra Amiibo Emulator</h1>
+
+            <!-- Connection Controls -->
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <button id="connect-btn" class="glass-btn" style="padding: 8px 16px; border-radius: 20px; height: 36px;">Connect</button>
+                <button id="refresh-slots-btn" class="glass-btn" style="padding: 8px 16px; border-radius: 20px; height: 36px; display: none;">Refresh</button>
+            </div>
+        </div>
+
+        <!-- Compact Keys Section -->
+        <div style="margin-top: 15px; display: flex; align-items: center; flex-wrap: wrap; gap: 15px; font-size: 0.9em;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="opacity: 0.7; color: #495057;">🔑 Keys:</span>
+                <div id="key-status" style="padding: 4px 8px; border-radius: 12px; background: rgba(0,0,0,0.05); backdrop-filter: blur(10px); min-width: 120px; text-align: center; color: #495057;">No keys loaded</div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <input type="file" id="key-file-input" accept=".bin" style="display: none;">
+                <button id="load-keys-btn" onclick="document.getElementById('key-file-input').click();" class="glass-btn" style="padding: 4px 12px; border-radius: 15px; font-size: 0.85em;">Upload</button>
+                <button id="clear-keys-btn" class="glass-btn" style="padding: 4px 12px; border-radius: 15px; font-size: 0.85em; display: none;">Clear</button>
+            </div>
+            <div style="opacity: 0.6; font-size: 0.8em; max-width: 300px; color: #6c757d;">Upload key_retail.bin to generate encrypted amiibo files</div>
+        </div>
+    </div>
 
     <!-- Battery Status -->
     <div id="battery-status" style="position: fixed; top: 20px; right: 20px; z-index: 1001; background: rgba(255,255,255,0.9); padding: 8px 12px; border-radius: 20px; border: 1px solid #ddd; font-size: 0.9em; display: none; backdrop-filter: blur(5px);">
@@ -405,18 +451,6 @@
 
     <!-- Notification Container -->
     <div id="notification-container" style="position: fixed; top: 60px; right: 20px; z-index: 1000; max-width: 400px;"></div>
-
-    <button id="connect-btn">Connect to Chameleon Ultra</button>
-    <button id="refresh-slots-btn" style="margin-left: 10px; display: none;">Refresh Slots</button>
-
-    <div style="margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9;">
-        <h3 style="margin-top: 0;">Retail Key Status</h3>
-        <div id="key-status" style="margin-bottom: 10px; padding: 8px; border-radius: 4px;">No retail keys loaded</div>
-        <input type="file" id="key-file-input" accept=".bin" style="display: none;">
-        <button id="load-keys-btn" onclick="document.getElementById('key-file-input').click();">Upload retail keys</button>
-        <button id="clear-keys-btn" style="margin-left: 10px; background-color: #6c757d; display: none;">Clear Keys</button>
-        <p style="margin: 5px 0 0 0; font-size: 0.9em; color: #666;">Upload key_retail.bin to generate encrypted amiibo files</p>
-    </div>
 
     <div class="container">
         <div id="status-section" style="display: none;">
@@ -685,6 +719,9 @@
 
     <script src="maboii.js"></script>
     <script>
+        // GATT operation mutex to prevent concurrent operations
+        let gattMutex = Promise.resolve();
+
         const connectBtn = document.getElementById('connect-btn');
         const refreshSlotsBtn = document.getElementById('refresh-slots-btn');
         const batteryStatus = document.getElementById('battery-status');
@@ -1065,7 +1102,7 @@
             const file = keyFileInput.files[0];
 
             if (!file) {
-                showNotification('Please select a key file first', 'warning');
+                setUploadStatus('Please select a key file first', 'warning');
                 return;
             }
 
@@ -1093,16 +1130,16 @@
                     localStorage.setItem('maboiiKeys', JSON.stringify(maboiiKeys));
                     await updateKeyStatus();
 
-                    showNotification('Keys loaded successfully! You can now generate encrypted amiibo files.', 'success');
+                    setUploadStatus('Keys loaded successfully! You can now generate encrypted amiibo files.', 'success');
 
                 } catch (error) {
                     console.error('Error loading keys:', error);
-                    showNotification('Error loading keys: ' + error.message, 'error');
+                    setUploadStatus('Error loading keys: ' + error.message, 'error');
                 }
             };
 
             reader.onerror = function() {
-                showNotification('Error reading file', 'error');
+                setUploadStatus('Error reading file', 'error');
             };
 
             reader.readAsArrayBuffer(file);
@@ -1115,7 +1152,7 @@
             localStorage.removeItem('maboiiKeys');
             await updateKeyStatus();
             keyFileInput.value = '';
-            showNotification('Keys cleared successfully.', 'info');
+            setUploadStatus('Keys cleared successfully.', 'success');
         }
         let fixedUids = {}; // Store fixed UIDs for each Amiibo ID
         let importedBinFile = null; // Store the currently selected .bin/.nfc file data
@@ -1153,9 +1190,32 @@
             batteryStatus.style.display = 'none';
         }
 
+        async function getBatteryInfoWithRetry(maxRetries = 3) {
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    const battery = await ultra.getBatteryInfo();
+
+                    // If percentage is 0, retry unless it's the last attempt
+                    if (battery.percentage === 0 && attempt < maxRetries) {
+                        debugLog(`Battery percentage is 0 on attempt ${attempt}, retrying...`);
+                        await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms before retry
+                        continue;
+                    }
+
+                    return battery;
+                } catch (error) {
+                    debugLog(`Battery info attempt ${attempt} failed:`, error);
+                    if (attempt === maxRetries) {
+                        throw error;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms before retry
+                }
+            }
+        }
+
         function onDisconnected() {
             console.log('Device disconnected');
-            connectBtn.textContent = 'Connect to Chameleon Ultra';
+            connectBtn.textContent = 'Connect';
             connectBtn.disabled = false;
             refreshSlotsBtn.style.display = 'none';
             hideBatteryDisplay();
@@ -2134,11 +2194,12 @@
             }
 
             async sendCommand(cmd, data = new Uint8Array()) {
-                return new Promise(async (resolve, reject) => {
-                    if (!this.device || !this.device.gatt.connected) {
-                        onDisconnected();
-                        return reject(new Error('Device not connected'));
-                    }
+                return gattMutex = gattMutex.then(async () => {
+                    return new Promise(async (resolve, reject) => {
+                        if (!this.device || !this.device.gatt.connected) {
+                            onDisconnected();
+                            return reject(new Error('Device not connected'));
+                        }
 
                     const header = new Uint8Array(6);
                     const view = new DataView(header.buffer);
@@ -2160,6 +2221,7 @@
 
                     setTimeout(() => reject(new Error('Command timed out')), 5000);
                     await this.rxCharacteristic.writeValue(frame);
+                    });
                 });
             }
 
@@ -2788,8 +2850,15 @@
 
                 // Parse slot info to identify which slots have Amiibos
                 const slotsWithAmiibos = [];
+                debugLog('Response slot info buffer size:', responseSlotInfo.byteLength);
                 for (let i = 0; i < 8; i++) {
-                    const hfTagType = responseSlotInfo.getUint16(i * 4, false);
+                    const offset = i * 4;
+                    // Check if we have enough data before reading
+                    if (offset + 2 > responseSlotInfo.byteLength) {
+                        debugLog(`⚠️ Not enough data for slot ${i}, skipping`);
+                        continue;
+                    }
+                    const hfTagType = responseSlotInfo.getUint16(offset, false);
                     const slotName = slotNames[i].hfName || '';
                     const hasAmiibo = hfTagType === TagType.NTAG_215 && slotName;
                     if (hasAmiibo) {
@@ -3535,9 +3604,12 @@
                 // Load slot information and battery info in background (non-blocking)
                 setTimeout(async () => {
                     try {
-                        // 1. Get battery info and display it
-                        const battery = await ultra.getBatteryInfo();
-                        updateBatteryDisplay(battery.voltage, battery.percentage);
+                        // 1. Start battery info check in background (non-blocking)
+                        getBatteryInfoWithRetry().then(battery => {
+                            updateBatteryDisplay(battery.voltage, battery.percentage);
+                        }).catch(error => {
+                            debugLog('Battery info failed:', error);
+                        });
 
                         // 2. Display basic slot cards immediately
                         await refreshAmiiboSlots();
@@ -3570,9 +3642,12 @@
                 refreshSlotsBtn.disabled = true;
                 refreshSlotsBtn.textContent = 'Refreshing...';
 
-                // Update battery info
-                const battery = await ultra.getBatteryInfo();
-                updateBatteryDisplay(battery.voltage, battery.percentage);
+                // Update battery info in background (non-blocking)
+                getBatteryInfoWithRetry().then(battery => {
+                    updateBatteryDisplay(battery.voltage, battery.percentage);
+                }).catch(error => {
+                    debugLog('Battery info failed during refresh:', error);
+                });
 
                 await refreshAmiiboSlots();
                 await loadAmiiboList();
