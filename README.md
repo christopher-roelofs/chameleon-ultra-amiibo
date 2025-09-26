@@ -94,7 +94,8 @@ A comprehensive web-based interface for managing and emulating Amiibo on the Cha
 1. Clone the repository
 2. Serve files through a local web server (required for Web Bluetooth)
 3. Use browser developer tools for debugging
-4. Test with actual Chameleon Ultra hardware
+4. Use enableDebug() in developer console to enable debug logs
+5. Test with actual Chameleon Ultra hardware
 
 ## ⚖️ Legal & Disclaimer
 
