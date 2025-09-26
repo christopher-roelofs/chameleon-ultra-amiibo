@@ -647,7 +647,6 @@
             <!-- End Search Tab Content -->
             </div>
 
-            <div id="generate-status" style="margin-top: 15px; padding: 10px; border-radius: 4px; display: none;"></div>
         </div>
     </div>
 
@@ -816,6 +815,7 @@
         const CMD_MF0_NTAG_SET_UID_MAGIC_MODE = 4020;
         const CMD_SLOT_DATA_CONFIG_SAVE = 1009;
         const CMD_SET_SLOT_TAG_NICK = 1007;
+        const CMD_GET_SLOT_TAG_NICK = 1008;
 
         const TagType = { NTAG_215: 1101 };
         const TagFrequency = { HF: 2 }; // HF frequency value
@@ -831,6 +831,13 @@
         // Maboii.js keys management
         let maboiiKeys = null;
         let keysLoaded = false;
+
+        // Helper function to clean filename for nickname
+        function cleanFilenameForNickname(filename) {
+            // Remove file extension (.bin, .nfc, etc.)
+            const nameWithoutExt = filename.replace(/\.[^/.]+$/, '');
+            return nameWithoutExt;
+        }
 
         // No need to store IDs separately - we'll read from the card display
 
@@ -1453,7 +1460,7 @@
                     const generatedData = await generateEncryptedAmiiboData(amiiboIdHex);
 
                     updateUploadProgress('Writing to device...', 90, `Uploading to slot ${slotIndex + 1} with random UID`);
-                    await ultra.writeBinToSlot(slotIndex, generatedData.pageData, file.name + ' (Random UID)', null, new Uint8Array([0, 4, 4, 2, 1, 0, 17, 3]));
+                    await ultra.writeBinToSlot(slotIndex, generatedData.pageData, cleanFilenameForNickname(file.name), null, new Uint8Array([0, 4, 4, 2, 1, 0, 17, 3]));
                 } else {
                     // Fallback to normal upload if ID extraction fails
                     console.log('Could not extract amiibo ID, using normal upload');
@@ -1461,7 +1468,7 @@
                     const patchedData = patchAmiiboData(parsedBin);
 
                     updateUploadProgress('Writing to device...', 90, `Uploading to slot ${slotIndex + 1}`);
-                    await ultra.writeBinToSlot(slotIndex, patchedData, file.name, parsedBin.signatureData, parsedBin.ultralightVersion);
+                    await ultra.writeBinToSlot(slotIndex, patchedData, cleanFilenameForNickname(file.name), parsedBin.signatureData, parsedBin.ultralightVersion);
                 }
             } else {
                 // Normal upload without randomization
@@ -1473,7 +1480,7 @@
                 const patchedData = patchAmiiboData(parsedBin);
 
                 updateUploadProgress('Writing to device...', 90, `Uploading to slot ${slotIndex + 1}`);
-                await ultra.writeBinToSlot(slotIndex, patchedData, file.name, parsedBin.signatureData, parsedBin.ultralightVersion);
+                await ultra.writeBinToSlot(slotIndex, patchedData, cleanFilenameForNickname(file.name), parsedBin.signatureData, parsedBin.ultralightVersion);
             }
 
             updateUploadProgress('Upload complete!', 100, 'Amiibo successfully written to device');
@@ -1485,12 +1492,14 @@
             }, 1000);
 
             // Refresh the slots display in background (non-blocking)
+            // Add longer delay to ensure device has fully processed the nickname update
             setTimeout(async () => {
+                console.log('🔄 Refreshing slots display after upload...');
                 await refreshAmiiboSlots();
                 if (allAmiibos.length > 0) {
                     await enhanceSlotCardsWithAmiiboInfo();
                 }
-            }, 1500);
+            }, 3000);  // Increased delay from 1500ms to 3000ms
         }
 
         // Extract amiibo ID from bin data
@@ -1731,7 +1740,6 @@
             document.getElementById('selected-amiibo-section').style.display = 'none';
             document.getElementById('amiibo-search-results').style.display = 'none';
             document.getElementById('amiibo-search').value = '';
-            document.getElementById('generate-status').style.display = 'none';
 
             // Load and display recent amiibos and favorites
             loadRecentAmiibos();
@@ -1808,8 +1816,7 @@
             // Clear previous selections in cards
             document.querySelectorAll('.recent-amiibo-card, .favorite-amiibo-card').forEach(c => c.classList.remove('selected'));
 
-            // Update status
-            setGenerateStatus(`Selected: ${amiibo.name}`, 'success');
+            // Amiibo is now selected and visible in the UI
         }
 
         // Favorites Management
@@ -1957,26 +1964,6 @@
         }
 
 
-        function setGenerateStatus(message, type = 'info') {
-            const statusDiv = document.getElementById('generate-status');
-            statusDiv.style.display = 'block';
-            statusDiv.textContent = message;
-            statusDiv.className = '';
-
-            if (type === 'success') {
-                statusDiv.style.backgroundColor = '#d4edda';
-                statusDiv.style.color = '#155724';
-                statusDiv.style.borderColor = '#c3e6cb';
-            } else if (type === 'error') {
-                statusDiv.style.backgroundColor = '#f8d7da';
-                statusDiv.style.color = '#721c24';
-                statusDiv.style.borderColor = '#f5c6cb';
-            } else {
-                statusDiv.style.backgroundColor = '#d1ecf1';
-                statusDiv.style.color = '#0c5460';
-                statusDiv.style.borderColor = '#bee5eb';
-            }
-        }
 
         // Upload Progress Modal functions
         function showUploadProgress(message, percent = 0, details = '', title = 'Processing...') {
@@ -2391,21 +2378,110 @@
                 // Enable the slot for HF frequency
                 const enableSlotData = new Uint8Array([slot, TagFrequency.HF, 1]); // slot, frequency, enable(1)
                 await this.sendCommand(CMD_SET_SLOT_ENABLE, enableSlotData);
+                console.log(`✅ Slot ${slot} enabled for HF frequency`);
 
-                // Set the slot nickname
+                // Save the configuration FIRST before setting nickname
+                console.log(`💾 Saving slot data configuration...`);
+                await this.sendCommand(CMD_SLOT_DATA_CONFIG_SAVE);
+                console.log(`✅ Slot data configuration saved`);
+
+                // Add delay to ensure data is saved
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                // Now set the slot nickname AFTER saving the slot data
+                console.log(`📝 Setting slot ${slot} (displayed as Slot ${slot + 1} in UI) nickname to: "${name}"`);
                 const textEncoder = new TextEncoder();
                 let nameBytes = textEncoder.encode(name);
-                if (nameBytes.length > 255) {
-                    nameBytes = nameBytes.slice(0, 255);
+
+                // Ensure name isn't too long
+                const maxNameLength = 32; // Some devices have a 32-byte limit for nicknames
+                if (nameBytes.length > maxNameLength) {
+                    console.log(`⚠️ Name too long (${nameBytes.length} bytes), truncating to ${maxNameLength} bytes`);
+                    // Try to truncate at a character boundary
+                    let truncatedName = name.substring(0, maxNameLength);
+                    nameBytes = textEncoder.encode(truncatedName);
+                    while (nameBytes.length > maxNameLength) {
+                        truncatedName = truncatedName.substring(0, truncatedName.length - 1);
+                        nameBytes = textEncoder.encode(truncatedName);
+                    }
                 }
+
+                console.log(`📝 Name bytes (${nameBytes.length}):`, Array.from(nameBytes).map(b => b.toString(16).padStart(2, '0')).join(' '));
+
+                // NEW APPROACH: Try activating the slot first to ensure it's ready
+                console.log(`🎯 Activating slot ${slot} before setting nickname...`);
+                const activateSlotForNickData = new Uint8Array([slot]);
+                await this.sendCommand(CMD_SET_ACTIVE_SLOT, activateSlotForNickData);
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                // Clear any existing nickname first by setting empty name
+                console.log(`🧹 Clearing existing nickname...`);
+                const clearNameData = new Uint8Array(2);
+                clearNameData[0] = slot;
+                clearNameData[1] = TagFrequency.HF;
+                await this.sendCommand(CMD_SET_SLOT_TAG_NICK, clearNameData);
+                await this.sendCommand(CMD_SLOT_DATA_CONFIG_SAVE);
+                await new Promise(resolve => setTimeout(resolve, 200));
+
+                // Now set the new nickname
                 const setNameData = new Uint8Array(2 + nameBytes.length);
                 setNameData[0] = slot;
                 setNameData[1] = TagFrequency.HF; // HF frequency
                 setNameData.set(nameBytes, 2);
-                await this.sendCommand(CMD_SET_SLOT_TAG_NICK, setNameData);
 
-                // Save the configuration
+                console.log(`📝 Sending CMD_SET_SLOT_TAG_NICK with data:`, Array.from(setNameData).map(b => b.toString(16).padStart(2, '0')).join(' '));
+                await this.sendCommand(CMD_SET_SLOT_TAG_NICK, setNameData);
+                console.log(`✅ Slot nickname set successfully`);
+
+                // Save configuration multiple times with longer delays
+                console.log(`💾 Saving nickname configuration (attempt 1)...`);
                 await this.sendCommand(CMD_SLOT_DATA_CONFIG_SAVE);
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                console.log(`💾 Saving nickname configuration (attempt 2)...`);
+                await this.sendCommand(CMD_SLOT_DATA_CONFIG_SAVE);
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                console.log(`💾 Saving nickname configuration (attempt 3)...`);
+                await this.sendCommand(CMD_SLOT_DATA_CONFIG_SAVE);
+                console.log(`✅ Nickname configuration saved successfully`);
+
+                // Add longer delay to ensure device has processed the nickname setting
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // Verify the nickname was saved by reading it back multiple times
+                let verificationAttempts = 3;
+                for (let attempt = 1; attempt <= verificationAttempts; attempt++) {
+                    try {
+                        console.log(`🔍 Verifying nickname was saved (attempt ${attempt})...`);
+                        const verifyResponse = await this.sendCommand(CMD_GET_SLOT_TAG_NICK, new Uint8Array([slot, TagFrequency.HF]));
+
+                        // The response should be the UTF-8 string directly
+                        let savedName = '';
+                        if (verifyResponse.byteLength > 0) {
+                            savedName = new TextDecoder().decode(new Uint8Array(verifyResponse.buffer, verifyResponse.byteOffset, verifyResponse.byteLength));
+                        }
+
+                        console.log(`✅ Verified nickname (attempt ${attempt}): "${savedName}"`);
+                        if (savedName && (savedName === name || name.startsWith(savedName))) {
+                            console.log(`🎉 Nickname verification successful!`);
+                            break;
+                        } else {
+                            console.warn(`⚠️ Nickname mismatch on attempt ${attempt}! Expected: "${name}", Got: "${savedName}"`);
+                            if (attempt < verificationAttempts) {
+                                // Try setting it again
+                                console.log(`🔄 Retrying nickname setting...`);
+                                await this.sendCommand(CMD_SET_SLOT_TAG_NICK, setNameData);
+                                await this.sendCommand(CMD_SLOT_DATA_CONFIG_SAVE);
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                            }
+                        }
+                    } catch (verifyError) {
+                        console.warn(`⚠️ Failed to verify nickname (attempt ${attempt}):`, verifyError.message);
+                    }
+                }
+
+                console.log(`📝 Slot ${slot} (displayed as Slot ${slot + 1} in UI) setup completed with nickname: "${name}"`);
             }
         }
 
@@ -3767,6 +3843,9 @@
             }
 
             try {
+                // Store slot before closing modal since closeUploadModal sets it to null
+                const targetSlot = uploadTargetSlot;
+
                 // Close the upload modal and show progress modal instead
                 closeUploadModal();
 
@@ -3775,7 +3854,7 @@
                 // Use the existing uploadBinToSlot function with randomize option
                 // Force randomization to false if no keys are available
                 const shouldRandomize = uploadRandomizeUid.checked && keysLoaded && maboiiKeys;
-                await uploadBinToSlotWithRandomize(file, uploadTargetSlot, shouldRandomize);
+                await uploadBinToSlotWithRandomize(file, targetSlot, shouldRandomize);
 
             } catch (error) {
                 console.error('Upload error:', error);
@@ -3798,6 +3877,9 @@
             }
 
             try {
+                // Store slot before closing modal since closeUploadModal sets it to null
+                const targetSlot = uploadTargetSlot;
+
                 // Close the upload modal and show progress modal instead
                 closeUploadModal();
 
@@ -3806,7 +3888,7 @@
                 // Use the existing upload function but with emulate instead of write
                 // Force randomization to false if no keys are available
                 const shouldRandomize = uploadRandomizeUid.checked && keysLoaded && maboiiKeys;
-                await uploadAndEmulateToSlot(file, uploadTargetSlot, shouldRandomize);
+                await uploadAndEmulateToSlot(file, targetSlot, shouldRandomize);
 
             } catch (error) {
                 console.error('Upload & Emulate error:', error);
@@ -3923,7 +4005,6 @@
                     });
                 } catch (error) {
                     console.error('Error loading amiibo database:', error);
-                    setGenerateStatus('Error loading amiibo database', 'error');
                 }
             }
             return Promise.resolve();
@@ -4099,7 +4180,7 @@
         // Generate action button
         generateWriteBtn.addEventListener('click', async () => {
             if (!selectedAmiiboForGeneration) {
-                setGenerateStatus('Please select an amiibo first', 'error');
+                console.log('No amiibo selected for generation');
                 return;
             }
             await generateAndWriteAmiibo();
@@ -4108,7 +4189,7 @@
         // Generate & Emulate button event listener
         generateEmulateBtn.addEventListener('click', async () => {
             if (!selectedAmiiboForGeneration) {
-                setGenerateStatus('Please select an amiibo first', 'error');
+                console.log('No amiibo selected for emulation');
                 return;
             }
             await generateAndEmulateAmiibo();
@@ -4129,16 +4210,19 @@
 
                 updateUploadProgress('Emulation started!', 100, 'Generated Amiibo emulation is now active!');
 
+                // Store values before closing modal since closeGenerateModal() sets them to null
+                const amiiboName = selectedAmiiboForGeneration.name;
+                const slotNumber = generateTargetSlot + 1;
+
                 setTimeout(() => {
                     hideUploadProgress();
                     closeGenerateModal();
-                    setUploadStatus(`Successfully started emulating ${selectedAmiiboForGeneration.name} on slot ${generateTargetSlot + 1}`, 'success');
+                    setUploadStatus(`Successfully started emulating ${amiiboName} on slot ${slotNumber}`, 'success');
                     refreshAmiiboSlots(); // Refresh slots after emulate
                 }, 1500);
 
             } catch (error) {
                 console.error('Generate & Emulate error:', error);
-                setGenerateStatus(`Generate & emulate failed: ${error.message}`, 'error');
                 hideUploadProgress();
             }
         }
@@ -4150,7 +4234,15 @@
                 updateUploadProgress('Processing amiibo data...', 50, 'Encrypting amiibo information');
                 // Generate the amiibo data using our V3 method (always uses random UID)
                 const amiiboId = getAmiiboId(selectedAmiiboForGeneration);
+                console.log(`🎮 Generating amiibo: "${selectedAmiiboForGeneration.name}" with ID: ${amiiboId}`);
                 const generatedData = await generateEncryptedAmiiboData(amiiboId);
+
+                // Verify the generated data contains the correct Amiibo ID
+                const generatedAmiiboId = Array.from(generatedData.pageData.slice(84, 92)).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+                console.log(`🔍 Generated data contains Amiibo ID: ${generatedAmiiboId}`);
+                if (generatedAmiiboId !== amiiboId.toUpperCase()) {
+                    console.error(`❌ Amiibo ID mismatch! Expected: ${amiiboId.toUpperCase()}, Got: ${generatedAmiiboId}`);
+                }
 
                 updateUploadProgress('Writing to device...', 90, `Writing ${selectedAmiiboForGeneration.name} to slot ${generateTargetSlot + 1}`);
                 // Use writeBinToSlot like the working amiibo uploads
@@ -4161,11 +4253,15 @@
                 // Save to recent amiibos
                 saveRecentAmiibo(selectedAmiiboForGeneration);
 
+                // Store values before closing modal since closeGenerateModal() sets them to null
+                const amiiboName = selectedAmiiboForGeneration.name;
+                const slotNumber = generateTargetSlot + 1;
+
                 // Close progress modal and generate modal immediately, show success
                 setTimeout(() => {
                     hideUploadProgress();
                     closeGenerateModal();
-                    setUploadStatus(`Successfully generated ${selectedAmiiboForGeneration.name} to slot ${generateTargetSlot + 1}`, 'success');
+                    setUploadStatus(`Successfully generated ${amiiboName} to slot ${slotNumber}`, 'success');
                 }, 1000);
 
                 // Refresh the slots display in background (non-blocking)
@@ -4179,7 +4275,6 @@
             } catch (error) {
                 console.error('Generation error:', error);
                 hideUploadProgress();
-                setGenerateStatus(`Error: ${error.message}`, 'error');
             }
         }
 
