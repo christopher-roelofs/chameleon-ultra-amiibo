@@ -640,6 +640,7 @@
 
                 <!-- Action Buttons -->
                 <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button id="generate-cancel-btn" style="background-color: #6c757d;">Cancel</button>
                     <button id="generate-write-btn">Write</button>
                     <button id="generate-emulate-btn" style="background-color: #28a745; display: none;">Emulate</button>
                 </div>
@@ -757,6 +758,7 @@
         const amiiboSearch = document.getElementById('amiibo-search');
         const amiiboSearchResults = document.getElementById('amiibo-search-results');
         const resultsInfo = document.getElementById('results-info');
+        const generateCancelBtn = document.getElementById('generate-cancel-btn');
         const generateWriteBtn = document.getElementById('generate-write-btn');
         const generateEmulateBtn = document.getElementById('generate-emulate-btn');
         const gameSeriesFilter = document.getElementById('game-series-filter');
@@ -3956,6 +3958,7 @@
 
         // Generate Modal Event Listeners
         generateCloseButton.addEventListener('click', closeGenerateModal);
+        generateCancelBtn.addEventListener('click', closeGenerateModal);
 
         // Amiibo search functionality
         let searchTimeout = null;
@@ -3975,10 +3978,28 @@
         sortOption.addEventListener('change', () => performSearch());
 
         clearFiltersBtn.addEventListener('click', () => {
+            // Clear search filters
             amiiboSearch.value = '';
             gameSeriesFilter.value = '';
             sortOption.value = 'newest';
-            performSearch(''); // Show all amiibos like when modal opens
+
+            // Clear selected amiibo
+            selectedAmiiboForGeneration = null;
+            document.getElementById('selected-amiibo-section').style.display = 'none';
+
+            // Clear previous selections in cards
+            document.querySelectorAll('.recent-amiibo-card, .favorite-amiibo-card').forEach(c => c.classList.remove('selected'));
+
+            // Reload and refresh the recent/favorites lists
+            loadRecentAmiibos();
+            loadFavoriteAmiibos();
+            displayRecentAmiibos();
+            displayFavoriteAmiibos();
+
+            // Load amiibo database and show all amiibos like at modal load
+            loadAmiiboDatabase().then(() => {
+                performSearch(''); // Show all amiibos with results visible
+            });
         });
 
         let allAmiiboData = [];
