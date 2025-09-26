@@ -792,6 +792,38 @@
         const UART_RX_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
         const UART_TX_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
 
+        // Debug control system
+        let DEBUG_MODE = false; // Can be changed at runtime
+
+        // Global debug control functions (accessible from browser console)
+        window.enableDebug = function() {
+            DEBUG_MODE = true;
+            console.log('🐛 Debug mode enabled - verbose logging is now on');
+        };
+
+        window.disableDebug = function() {
+            DEBUG_MODE = false;
+            console.log('🔇 Debug mode disabled - only errors will be shown');
+        };
+
+        // Debug logging functions
+        function debugLog(...args) {
+            if (DEBUG_MODE) {
+                console.log(...args);
+            }
+        }
+
+        function debugWarn(...args) {
+            if (DEBUG_MODE) {
+                console.warn(...args);
+            }
+        }
+
+        function debugError(...args) {
+            // Always show errors, even in production
+            console.error(...args);
+        }
+
         const CMD_SET_ACTIVE_SLOT = 1003;
         const CMD_GET_ACTIVE_SLOT = 1018;
         const CMD_GET_SLOT_INFO = 1019;
@@ -871,7 +903,7 @@
                 lastUpdated: Date.now(),
                 deviceSignature: generateDeviceSignature(slotName, amiiboId)
             };
-            console.log(`💾 Cached data for slot ${slotIndex + 1}: ${slotName} (ID: ${amiiboId})`);
+            debugLog(`💾 Cached data for slot ${slotIndex + 1}: ${slotName} (ID: ${amiiboId})`);
         }
 
         function validateCachedSlotData(slotIndex, currentSlotName, currentAmiiboId) {
@@ -882,11 +914,11 @@
             const isValid = cached.deviceSignature === currentSignature;
 
             if (!isValid) {
-                console.log(`🔄 Cache invalid for slot ${slotIndex + 1}: cached="${cached.slotName}" vs current="${currentSlotName}"`);
+                debugLog(`🔄 Cache invalid for slot ${slotIndex + 1}: cached="${cached.slotName}" vs current="${currentSlotName}"`);
                 // Remove invalid cache entry
                 delete slotDataCache[slotIndex];
             } else {
-                console.log(`✅ Cache valid for slot ${slotIndex + 1}: ${cached.slotName}`);
+                debugLog(`✅ Cache valid for slot ${slotIndex + 1}: ${cached.slotName}`);
             }
 
             return isValid;
@@ -895,10 +927,10 @@
         function clearSlotCache(slotIndex = null) {
             if (slotIndex !== null) {
                 delete slotDataCache[slotIndex];
-                console.log(`🗑️ Cleared cache for slot ${slotIndex + 1}`);
+                debugLog(`🗑️ Cleared cache for slot ${slotIndex + 1}`);
             } else {
                 slotDataCache = {};
-                console.log(`🗑️ Cleared all slot cache`);
+                debugLog(`🗑️ Cleared all slot cache`);
             }
         }
 
@@ -2734,21 +2766,21 @@
         }
 
         async function refreshAmiiboSlots(clearCache = false) {
-            console.log('🔄 refreshAmiiboSlots() called');
+            debugLog('🔄 refreshAmiiboSlots() called');
 
             if (clearCache) {
                 clearSlotCache(); // Clear all cache
-                console.log('🧹 Cleared all slot cache as requested');
+                debugLog('🧹 Cleared all slot cache as requested');
             }
 
             if (!ultra || !ultra.device || !ultra.device.gatt.connected) {
-                console.log('❌ Device not connected, hiding slots');
+                debugLog('❌ Device not connected, hiding slots');
                 amiiboSlotsDiv.style.display = 'none';
                 return;
             }
 
             try {
-                console.log('📡 Getting slot info from device...');
+                debugLog('📡 Getting slot info from device...');
                 const responseSlotInfo = await ultra.sendCommand(CMD_GET_SLOT_INFO);
                 const slotNames = await ultra.getSlotNames();
                 const activeSlot = await ultra.getActiveSlot();
@@ -2765,11 +2797,11 @@
                     }
                 }
 
-                console.log('📊 Device data received:');
-                console.log('- Active slot:', activeSlot);
-                console.log('- Slot names:', slotNames);
-                console.log('- Slots with Amiibos:', slotsWithAmiibos);
-                console.log('- Amiibo database size:', allAmiibos.length);
+                debugLog('📊 Device data received:');
+                debugLog('- Active slot:', activeSlot);
+                debugLog('- Slot names:', slotNames);
+                debugLog('- Slots with Amiibos:', slotsWithAmiibos);
+                debugLog('- Amiibo database size:', allAmiibos.length);
 
                 amiiboSlotsList.innerHTML = '';
                 let hasAmiiboSlots = false;
@@ -2800,7 +2832,7 @@
                         slotSummary.textContent = slotName + (isActive ? ' (Currently Selected)' : '');
 
                         // Try to get Amiibo info from device data
-                        console.log(`Slot ${i + 1}: Name="${slotName}", isEmpty=${isEmpty}, allAmiibos.length=${allAmiibos.length}`);
+                        debugLog(`Slot ${i + 1}: Name="${slotName}", isEmpty=${isEmpty}, allAmiibos.length=${allAmiibos.length}`);
 
                         // Rich Amiibo info will be loaded by retryAmiiboInfoForAllSlots() after database loads
                     }
@@ -2943,7 +2975,7 @@
                 // Ensure the visual selection indicators are properly set for the active slot
                 updateSlotSelectionIndicators(activeSlot);
 
-                console.log(`✅ refreshAmiiboSlots() completed. Created ${amiiboSlotsList.children.length} slot cards. Active slot: ${activeSlot}`);
+                debugLog(`✅ refreshAmiiboSlots() completed. Created ${amiiboSlotsList.children.length} slot cards. Active slot: ${activeSlot}`);
             } catch (error) {
                 console.error('❌ Error refreshing Amiibo slots:', error);
                 amiiboSlotsDiv.style.display = 'none';
@@ -3255,7 +3287,7 @@
                 return;
             }
 
-            console.log('🎨 Enhancing slot cards with rich Amiibo information...');
+            debugLog('🎨 Enhancing slot cards with rich Amiibo information...');
 
             // Get slot info to identify which slots have Amiibos (avoid unnecessary activations)
             const responseSlotInfo = await ultra.sendCommand(CMD_GET_SLOT_INFO);
@@ -3273,8 +3305,8 @@
                 }
             }
 
-            console.log(`📍 Original active slot: ${originalActiveSlot}`);
-            console.log(`🎯 Slots to enhance: [${slotsWithAmiibos.join(', ')}] (skipping ${8 - slotsWithAmiibos.length} empty slots)`);
+            debugLog(`📍 Original active slot: ${originalActiveSlot}`);
+            debugLog(`🎯 Slots to enhance: [${slotsWithAmiibos.join(', ')}] (skipping ${8 - slotsWithAmiibos.length} empty slots)`);
 
             const slotCards = document.querySelectorAll('.slot');
 
@@ -3288,7 +3320,7 @@
                     continue;
                 }
 
-                console.log(`🎨 Enhancing slot ${i + 1} with Amiibo info...`);
+                debugLog(`🎨 Enhancing slot ${i + 1} with Amiibo info...`);
                 try {
                     const amiiboInfo = await getSlotAmiiboInfo(i);
                     if (amiiboInfo && amiiboInfo.name && summaryElement) {
@@ -3325,9 +3357,9 @@
             try {
                 const activateSlotData = new Uint8Array([originalActiveSlot]);
                 await ultra.sendCommand(CMD_SET_ACTIVE_SLOT, activateSlotData);
-                console.log(`🔄 Restored original active slot: ${originalActiveSlot}`);
+                debugLog(`🔄 Restored original active slot: ${originalActiveSlot}`);
             } catch (error) {
-                console.log(`Could not restore original active slot ${originalActiveSlot}:`, error.message);
+                debugLog(`Could not restore original active slot ${originalActiveSlot}:`, error.message);
             }
         }
 
@@ -3383,7 +3415,7 @@
                 const slotNames = await ultra.getSlotNames();
                 const currentSlotName = slotNames[slotIndex]?.hfName || '';
 
-                console.log(`Setting slot ${slotIndex + 1} as active to read Amiibo data...`);
+                debugLog(`Setting slot ${slotIndex + 1} as active to read Amiibo data...`);
                 // Set the slot as active to read from it
                 const activateSlotData = new Uint8Array([slotIndex]);
                 await ultra.sendCommand(CMD_SET_ACTIVE_SLOT, activateSlotData);
@@ -3391,11 +3423,11 @@
                 // Small delay to ensure slot is active
                 await new Promise(resolve => setTimeout(resolve, 100));
 
-                console.log(`Reading NTAG pages 21-22 from slot ${slotIndex + 1}...`);
+                debugLog(`Reading NTAG pages 21-22 from slot ${slotIndex + 1}...`);
                 // Read pages 21-22 (Amiibo ID is at bytes 84-91, which is pages 21-22)
                 const pageData = await ultra.readNtagPages(21, 2); // 2 pages = 8 bytes
 
-                console.log(`Read ${pageData.length} bytes from slot ${slotIndex + 1}:`, Array.from(pageData).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' '));
+                debugLog(`Read ${pageData.length} bytes from slot ${slotIndex + 1}:`, Array.from(pageData).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' '));
 
                 if (pageData.length >= 8) {
                     // Convert to hex string (Amiibo ID format)
@@ -3404,18 +3436,18 @@
                         .join('')
                         .toUpperCase();
 
-                    console.log(`Slot ${slotIndex + 1} extracted Amiibo ID: ${amiiboIdHex}`);
+                    debugLog(`Slot ${slotIndex + 1} extracted Amiibo ID: ${amiiboIdHex}`);
 
                     // Skip if the ID looks like empty/default data
                     if (amiiboIdHex === '0000000000000000' || amiiboIdHex === 'FFFFFFFFFFFFFFFF') {
-                        console.log(`Slot ${slotIndex + 1} has empty/default Amiibo ID`);
+                        debugLog(`Slot ${slotIndex + 1} has empty/default Amiibo ID`);
                         return null;
                     }
 
                     // Check cache first - validate with current device data
                     if (validateCachedSlotData(slotIndex, currentSlotName, amiiboIdHex)) {
                         const cached = getCachedSlotData(slotIndex);
-                        console.log(`🚀 Using cached data for slot ${slotIndex + 1}: ${cached.amiiboDetails.name}`);
+                        debugLog(`🚀 Using cached data for slot ${slotIndex + 1}: ${cached.amiiboDetails.name}`);
                         return {
                             ...cached.amiiboDetails,
                             extractedId: amiiboIdHex
@@ -3423,7 +3455,7 @@
                     }
 
                     // Cache miss or invalid - fetch from API
-                    console.log(`🌐 Fetching fresh data from API for slot ${slotIndex + 1}...`);
+                    debugLog(`🌐 Fetching fresh data from API for slot ${slotIndex + 1}...`);
                     const amiiboInfo = findAmiiboByID(amiiboIdHex);
                     if (amiiboInfo) {
                         console.log(`✓ Found Amiibo match for slot ${slotIndex + 1}: ${amiiboInfo.name}`);
@@ -4108,7 +4140,7 @@
             const now = Date.now();
             const isValid = (now - amiiboDataCache.lastFetched) < amiiboDataCache.cacheExpiry;
             if (!isValid) {
-                console.log('🕒 Amiibo cache expired, will fetch fresh data');
+                debugLog('🕒 Amiibo cache expired, will fetch fresh data');
             }
             return isValid;
         }
@@ -4127,12 +4159,12 @@
             // Update global variables
             allAmiiboData = data;
 
-            console.log(`💾 Cached ${data.length} amiibos with ${sortedSeries.length} game series`);
+            debugLog(`💾 Cached ${data.length} amiibos with ${sortedSeries.length} game series`);
         }
 
         function getCachedAmiiboData() {
             if (isCacheValid() && amiiboDataCache.data.length > 0) {
-                console.log(`🚀 Using cached amiibo data (${amiiboDataCache.data.length} amiibos)`);
+                debugLog(`🚀 Using cached amiibo data (${amiiboDataCache.data.length} amiibos)`);
 
                 // Restore global variables from cache
                 allAmiiboData = amiiboDataCache.data;
@@ -4154,7 +4186,7 @@
 
             // Cache miss or expired - fetch from API
             try {
-                console.log('🌐 Fetching fresh amiibo data from API...');
+                debugLog('🌐 Fetching fresh amiibo data from API...');
                 const response = await fetch('https://www.amiiboapi.com/api/amiibo/');
                 const data = await response.json();
 
@@ -4164,9 +4196,9 @@
                 // Populate dropdown
                 populateGameSeriesDropdown();
 
-                console.log(`✅ Loaded ${data.amiibo.length} amiibos from API`);
+                debugLog(`✅ Loaded ${data.amiibo.length} amiibos from API`);
             } catch (error) {
-                console.error('Error loading amiibo database:', error);
+                debugError('Error loading amiibo database:', error);
             }
             return Promise.resolve();
         }
@@ -4187,7 +4219,7 @@
             amiiboDataCache.lastFetched = null;
             allAmiiboData = [];
             gameSeriesSet.clear();
-            console.log('🗑️ Cleared amiibo database cache');
+            debugLog('🗑️ Cleared amiibo database cache');
         }
 
         function performSearch(query = null) {
