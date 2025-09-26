@@ -5,7 +5,7 @@ A comprehensive web-based interface for managing and emulating Amiibo on the Cha
 ## ✨ Features
 
 ### 🎮 Amiibo Management
-- **Generate Legal Amiibos**: Create legitimate Amiibo data with random UIDs using retail encryption keys
+- **Generate Real Amiibos**: Create legitimate Amiibo data with random UIDs using retail encryption keys
 - **Upload Custom Files**: Support for both `.bin` and `.nfc` file formats
 - **UID Randomization**: Generate fresh UIDs for existing Amiibos to avoid detection
 - **Slot Management**: Manage all 8 device slots with clear, rename, and activation controls
