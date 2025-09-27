@@ -830,7 +830,7 @@
         const UART_TX_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
 
         // Debug control system
-        let DEBUG_MODE = false; // Can be changed at runtime
+        let DEBUG_MODE = true; // Can be changed at runtime
 
         // Global debug control functions (accessible from browser console)
         window.enableDebug = function() {
@@ -1646,13 +1646,13 @@
                 setUploadStatus(`Successfully uploaded ${file.name} to slot ${slotIndex + 1}`, 'success');
             }, 1000);
 
-            // Refresh the slots display in background (non-blocking)
+            // Refresh the specific slot display in background (non-blocking)
             // Add longer delay to ensure device has fully processed the nickname update
             setTimeout(async () => {
-                console.log('🔄 Refreshing slots display after upload...');
-                await refreshAmiiboSlots();
+                console.log(`🔄 Refreshing slot ${slotIndex} display after upload...`);
+                await refreshSingleSlotDisplay(slotIndex);
                 if (allAmiibos.length > 0) {
-                    await enhanceSlotCardsWithAmiiboInfo();
+                    await enhanceSingleSlotWithAmiiboInfo(slotIndex);
                 }
             }, 3000);  // Increased delay from 1500ms to 3000ms
         }
@@ -1706,7 +1706,7 @@
                 setTimeout(() => {
                     hideUploadProgress();
                     setUploadStatus(`Successfully randomized UID and emulating ${slotName} on slot ${slotIndex + 1}`, 'success');
-                    refreshAmiiboSlots(); // Refresh slots
+                    refreshSingleSlotDisplay(slotIndex); // Refresh just this slot
                 }, 1500);
 
             } catch (error) {
@@ -1755,9 +1755,9 @@
                     setUploadStatus(`Successfully randomized UID for ${slotName}`, 'success');
                 }, 1000);
 
-                // Refresh the slots display in background (non-blocking)
+                // Refresh the specific slot display in background (non-blocking)
                 setTimeout(async () => {
-                    await refreshAmiiboSlots();
+                    await refreshSingleSlotDisplay(slotIndex);
                     if (allAmiibos.length > 0) {
                         await enhanceSlotCardsWithAmiiboInfo();
                     }
@@ -2848,194 +2848,44 @@
                 const activeSlot = await ultra.getActiveSlot();
                 currentSlotNames = slotNames; // Store slot names globally
 
-                // Parse slot info to identify which slots have Amiibos
+                debugLog('📊 Device data received:');
+                debugLog('- Active slot:', activeSlot);
+                debugLog('- Response slot info buffer size:', responseSlotInfo.byteLength);
+
+                // Process all slots using the single slot function
                 const slotsWithAmiibos = [];
-                debugLog('Response slot info buffer size:', responseSlotInfo.byteLength);
+                const slotResults = [];
+
                 for (let i = 0; i < 8; i++) {
-                    const offset = i * 4;
-                    // Check if we have enough data before reading
-                    if (offset + 2 > responseSlotInfo.byteLength) {
-                        debugLog(`⚠️ Not enough data for slot ${i}, skipping`);
-                        continue;
-                    }
-                    const hfTagType = responseSlotInfo.getUint16(offset, false);
-                    const slotName = slotNames[i].hfName || '';
-                    const hasAmiibo = hfTagType === TagType.NTAG_215 && slotName;
-                    if (hasAmiibo) {
-                        slotsWithAmiibos.push(i);
+                    const slotResult = await refreshSingleSlot(i, slotNames, responseSlotInfo);
+                    if (slotResult) {
+                        slotResults.push(slotResult);
+                        if (slotResult.hasAmiibo) {
+                            slotsWithAmiibos.push(i);
+                        }
                     }
                 }
 
-                debugLog('📊 Device data received:');
-                debugLog('- Active slot:', activeSlot);
-                debugLog('- Slot names:', slotNames);
                 debugLog('- Slots with Amiibos:', slotsWithAmiibos);
                 debugLog('- Amiibo database size:', allAmiibos.length);
 
                 amiiboSlotsList.innerHTML = '';
                 let hasAmiiboSlots = false;
 
-                for (let i = 0; i < 8; i++) {
-                    const hfTagType = responseSlotInfo.getUint16(i * 4, false);
-                    const slotName = slotNames[i].hfName || '';
-                    const isEmpty = !slotsWithAmiibos.includes(i);
+                for (const slotResult of slotResults) {
+                    const i = slotResult.slotIndex;
+                    const isEmpty = !slotResult.hasAmiibo;
                     const isActive = (i === activeSlot);
 
-                    // Create slot card
-                    const slotCard = document.createElement('div');
-                    slotCard.className = `well slot ${isEmpty ? 'slot-empty' : ''} ${isActive ? 'slot-selected' : ''}`;
-
-                    const slotTitle = document.createElement('div');
-                    slotTitle.className = 'slot-title';
-                    slotTitle.textContent = `Slot ${i + 1}`;
-
-                    const slotSummary = document.createElement('div');
-                    slotSummary.className = 'slot-summary';
-
-                    if (isEmpty) {
-                        slotSummary.textContent = 'Empty slot - Import a .bin/.nfc file or generate to add an Amiibo';
-                    } else {
-                        hasAmiiboSlots = true;
-
-                        // Always set initial display first
-                        slotSummary.textContent = slotName + (isActive ? ' (Currently Selected)' : '');
-
-                        // Try to get Amiibo info from device data
-                        debugLog(`Slot ${i + 1}: Name="${slotName}", isEmpty=${isEmpty}, allAmiibos.length=${allAmiibos.length}`);
-
-                        // Rich Amiibo info will be loaded by retryAmiiboInfoForAllSlots() after database loads
-                    }
-
-                    const slotLinks = document.createElement('ul');
-                    slotLinks.className = 'slot-links';
-
-                    // Upload link (always present)
-                    const uploadLi = document.createElement('li');
-                    const uploadLink = document.createElement('a');
-                    uploadLink.href = '#';
-                    uploadLink.textContent = 'Upload';
-
-                    // Create hidden file input for this slot
-                    const fileInput = document.createElement('input');
-                    fileInput.type = 'file';
-                    fileInput.accept = '.bin,.nfc';
-                    fileInput.className = 'upload-input';
-                    fileInput.id = `upload-input-${i}`;
-
-                    uploadLink.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        openUploadModal(i, isEmpty ? 'Empty' : slotName);
-                    });
-
-                    fileInput.addEventListener('change', (e) => {
-                        const file = e.target.files[0];
-                        if (file) {
-                            uploadBinToSlot(file, i);
-                        }
-                    });
-
-                    uploadLi.appendChild(uploadLink);
-                    uploadLi.appendChild(fileInput);
-                    slotLinks.appendChild(uploadLi);
+                    // Create slot card using helper function
+                    const slotCard = createSlotCard(i, isEmpty, slotResult.slotName, isActive);
 
                     if (!isEmpty) {
-                        // Download link - commented out until feature is implemented
-                        /*
-                        const downloadLi = document.createElement('li');
-                        const downloadLink = document.createElement('a');
-                        downloadLink.href = '#';
-                        downloadLink.textContent = 'Download';
-                        downloadLink.addEventListener('click', (e) => {
-                            e.preventDefault();
-                            openDownloadModal(i, slotName);
-                        });
-                        downloadLi.appendChild(downloadLink);
-                        slotLinks.appendChild(downloadLi);
-                        */
-
-                        // Clear link
-                        const clearLi = document.createElement('li');
-                        const clearLink = document.createElement('a');
-                        clearLink.href = '#';
-                        clearLink.textContent = 'Clear';
-                        clearLink.addEventListener('click', (e) => {
-                            e.preventDefault();
-                            openClearSlotModal(i, slotName);
-                        });
-                        clearLi.appendChild(clearLink);
-                        slotLinks.appendChild(clearLi);
-
-                        // Select link
-                        const selectLi = document.createElement('li');
-                        const selectLink = document.createElement('a');
-                        selectLink.href = '#';
-                        selectLink.textContent = 'Select';
-                        selectLink.addEventListener('click', (e) => {
-                            e.preventDefault();
-                            selectSlot(i);
-                        });
-                        selectLi.appendChild(selectLink);
-                        slotLinks.appendChild(selectLi);
+                        hasAmiiboSlots = true;
+                        // Rich Amiibo info will be loaded by retryAmiiboInfoForAllSlots() after database loads
+                        debugLog(`Slot ${i + 1}: Name="${slotResult.slotName}", isEmpty=${isEmpty}, allAmiibos.length=${allAmiibos.length}`);
                     }
 
-                    // Generate link - only available when keys are loaded
-                    if (keysLoaded && maboiiKeys) {
-                        const generateLi = document.createElement('li');
-                        const generateLink = document.createElement('a');
-                        generateLink.href = '#';
-                        generateLink.textContent = 'Generate';
-                        generateLink.addEventListener('click', (e) => {
-                            e.preventDefault();
-                            openGenerateModal(i, isEmpty ? 'Empty' : slotName);
-                        });
-                        generateLi.appendChild(generateLink);
-                        slotLinks.appendChild(generateLi);
-                    }
-
-                    // Randomize UID link - available for non-empty slots and only when keys are loaded
-                    if (!isEmpty && keysLoaded && maboiiKeys) {
-                        const randomizeUidLi = document.createElement('li');
-                        const randomizeUidLink = document.createElement('a');
-                        randomizeUidLink.href = '#';
-                        randomizeUidLink.textContent = 'Randomize UID';
-                        randomizeUidLink.addEventListener('click', (e) => {
-                            e.preventDefault();
-                            // Extract amiibo ID directly from the card display
-                            const slotCard = e.target.closest('.slot');
-                            let amiiboId = null;
-                            if (slotCard) {
-                                const slotSummary = slotCard.querySelector('.slot-summary');
-                                if (slotSummary) {
-                                    // Look for "Amiibo ID: XXXXXXXXXXXXXXXX" in the HTML content
-                                    const match = slotSummary.innerHTML.match(/Amiibo ID:<\/strong>\s*([A-F0-9]{16})/i);
-                                    if (match) {
-                                        amiiboId = match[1];
-                                    }
-                                }
-                            }
-                            randomizeSlotUID(i, slotName, amiiboId);
-                        });
-                        randomizeUidLi.appendChild(randomizeUidLink);
-                        slotLinks.appendChild(randomizeUidLi);
-
-                        // Add Randomize & Emulate link
-                        const randomizeEmulateLi = document.createElement('li');
-                        const randomizeEmulateLink = document.createElement('a');
-                        randomizeEmulateLink.href = '#';
-                        randomizeEmulateLink.textContent = 'Randomize & Emulate';
-                        randomizeEmulateLink.style.color = '#28a745'; // Green color for emulate actions
-                        randomizeEmulateLink.style.display = 'none'; // Hide for now
-                        randomizeEmulateLink.addEventListener('click', (e) => {
-                            e.preventDefault();
-                            randomizeAndEmulate(i, slotName);
-                        });
-                        randomizeEmulateLi.appendChild(randomizeEmulateLink);
-                        slotLinks.appendChild(randomizeEmulateLi);
-                    }
-
-                    slotCard.appendChild(slotTitle);
-                    slotCard.appendChild(slotSummary);
-                    slotCard.appendChild(slotLinks);
                     amiiboSlotsList.appendChild(slotCard);
                 }
 
@@ -3049,6 +2899,243 @@
                 console.error('❌ Error refreshing Amiibo slots:', error);
                 amiiboSlotsDiv.style.display = 'none';
             }
+        }
+
+        async function refreshSingleSlot(slotIndex, slotNames = null, responseSlotInfo = null) {
+            debugLog(`🔄 Refreshing single slot ${slotIndex}`);
+
+            if (!ultra || !ultra.device || !ultra.device.gatt.connected) {
+                debugLog('❌ Device not connected');
+                return null;
+            }
+
+            try {
+                // Get data if not provided (for individual slot refresh)
+                if (!slotNames || !responseSlotInfo) {
+                    slotNames = await ultra.getSlotNames();
+                    responseSlotInfo = await ultra.sendCommand(CMD_GET_SLOT_INFO);
+                }
+
+                // Check bounds for this specific slot
+                const offset = slotIndex * 4;
+                if (offset + 2 > responseSlotInfo.byteLength) {
+                    debugLog(`⚠️ Not enough data for slot ${slotIndex}`);
+                    return null;
+                }
+
+                const hfTagType = responseSlotInfo.getUint16(offset, false);
+                const slotName = slotNames[slotIndex].hfName || '';
+                const hasAmiibo = hfTagType === TagType.NTAG_215 && slotName;
+
+                // Clear cache for this slot if it doesn't have amiibo data
+                if (!hasAmiibo) {
+                    clearSlotCache(slotIndex);
+                }
+
+                return {
+                    slotIndex,
+                    hfTagType,
+                    slotName,
+                    hasAmiibo,
+                    slotData: slotNames[slotIndex]
+                };
+            } catch (error) {
+                debugLog(`❌ Error refreshing slot ${slotIndex}:`, error);
+                return null;
+            }
+        }
+
+        function createSlotCard(slotIndex, isEmpty, slotName, isActive) {
+            const slotCard = document.createElement('div');
+            slotCard.className = `well slot ${isEmpty ? 'slot-empty' : ''} ${isActive ? 'slot-selected' : ''}`;
+            slotCard.setAttribute('data-slot-index', slotIndex);
+
+            const slotTitle = document.createElement('div');
+            slotTitle.className = 'slot-title';
+            slotTitle.textContent = `Slot ${slotIndex + 1}`;
+
+            const slotSummary = document.createElement('div');
+            slotSummary.className = 'slot-summary';
+
+            if (isEmpty) {
+                slotSummary.textContent = 'Empty slot - Import a .bin/.nfc file or generate to add an Amiibo';
+            } else {
+                slotSummary.textContent = `${slotName} (Click to emulate)${isActive ? ' (Currently Selected)' : ''}`;
+            }
+
+            slotCard.appendChild(slotTitle);
+            slotCard.appendChild(slotSummary);
+
+            // Add slot links
+            addSlotLinks(slotCard, slotIndex, isEmpty, slotName);
+
+            return slotCard;
+        }
+
+        function addSlotLinks(slotCard, slotIndex, isEmpty, slotName) {
+            const slotLinks = document.createElement('ul');
+            slotLinks.className = 'slot-links';
+
+            // Upload link (always present)
+            const uploadLi = document.createElement('li');
+            const uploadLink = document.createElement('a');
+            uploadLink.href = '#';
+            uploadLink.textContent = 'Upload';
+
+            // Create hidden file input for this slot
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.bin,.nfc';
+            fileInput.className = 'upload-input';
+            fileInput.id = `upload-input-${slotIndex}`;
+
+            uploadLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                openUploadModal(slotIndex, isEmpty ? 'Empty' : slotName);
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    uploadBinToSlot(file, slotIndex);
+                }
+            });
+
+            uploadLi.appendChild(uploadLink);
+            uploadLi.appendChild(fileInput);
+            slotLinks.appendChild(uploadLi);
+
+            if (!isEmpty) {
+                // Clear link
+                const clearLi = document.createElement('li');
+                const clearLink = document.createElement('a');
+                clearLink.href = '#';
+                clearLink.textContent = 'Clear';
+                clearLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    openClearSlotModal(slotIndex, slotName);
+                });
+                clearLi.appendChild(clearLink);
+                slotLinks.appendChild(clearLi);
+
+                // Select link
+                const selectLi = document.createElement('li');
+                const selectLink = document.createElement('a');
+                selectLink.href = '#';
+                selectLink.textContent = 'Select';
+                selectLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    selectSlot(slotIndex);
+                });
+                selectLi.appendChild(selectLink);
+                slotLinks.appendChild(selectLi);
+            }
+
+            // Generate link - only available when keys are loaded
+            if (keysLoaded && maboiiKeys) {
+                const generateLi = document.createElement('li');
+                const generateLink = document.createElement('a');
+                generateLink.href = '#';
+                generateLink.textContent = 'Generate';
+                generateLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    openGenerateModal(slotIndex, isEmpty ? 'Empty' : slotName);
+                });
+                generateLi.appendChild(generateLink);
+                slotLinks.appendChild(generateLi);
+            }
+
+            // Randomize UID link - available for non-empty slots and only when keys are loaded
+            if (!isEmpty && keysLoaded && maboiiKeys) {
+                const randomizeUidLi = document.createElement('li');
+                const randomizeUidLink = document.createElement('a');
+                randomizeUidLink.href = '#';
+                randomizeUidLink.textContent = 'Randomize UID';
+                randomizeUidLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // Extract amiibo ID directly from the card display
+                    const slotCard = e.target.closest('.slot');
+                    let amiiboId = null;
+                    if (slotCard) {
+                        const slotSummary = slotCard.querySelector('.slot-summary');
+                        if (slotSummary) {
+                            // Look for "Amiibo ID: XXXXXXXXXXXXXXXX" in the HTML content
+                            const match = slotSummary.innerHTML.match(/Amiibo ID:<\/strong>\s*([A-F0-9]{16})/i);
+                            if (match) {
+                                amiiboId = match[1];
+                            }
+                        }
+                    }
+                    randomizeSlotUID(slotIndex, slotName, amiiboId);
+                });
+                randomizeUidLi.appendChild(randomizeUidLink);
+                slotLinks.appendChild(randomizeUidLi);
+
+                // Add Randomize & Emulate link
+                const randomizeEmulateLi = document.createElement('li');
+                const randomizeEmulateLink = document.createElement('a');
+                randomizeEmulateLink.href = '#';
+                randomizeEmulateLink.textContent = 'Randomize & Emulate';
+                randomizeEmulateLink.style.color = '#28a745'; // Green color for emulate actions
+                randomizeEmulateLink.style.display = 'none'; // Hide for now
+                randomizeEmulateLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    randomizeAndEmulate(slotIndex, slotName);
+                });
+                randomizeEmulateLi.appendChild(randomizeEmulateLink);
+                slotLinks.appendChild(randomizeEmulateLi);
+            }
+
+            slotCard.appendChild(slotLinks);
+        }
+
+        async function refreshSingleSlotDisplay(slotIndex) {
+            console.log(`🔄 Refreshing display for slot ${slotIndex}`);
+
+            const slotResult = await refreshSingleSlot(slotIndex);
+            if (!slotResult) {
+                console.log(`❌ Could not refresh slot ${slotIndex}`);
+                return;
+            }
+
+            // Get active slot for comparison
+            const activeSlot = await ultra.getActiveSlot();
+
+            // Find existing slot card and update it
+            const existingCard = document.querySelector(`[data-slot-index="${slotIndex}"]`);
+            if (existingCard) {
+                existingCard.remove();
+            }
+
+            // Create new slot card using helper function
+            const isEmpty = !slotResult.hasAmiibo;
+            const isActive = (slotIndex === activeSlot);
+
+            const slotCard = createSlotCard(slotIndex, isEmpty, slotResult.slotName, isActive);
+
+            if (!isEmpty) {
+                amiiboSlotsDiv.style.display = 'block';
+            }
+
+            // Insert in correct position
+            const slots = amiiboSlotsList.children;
+            let inserted = false;
+            for (let i = 0; i < slots.length; i++) {
+                const existingSlotIndex = parseInt(slots[i].getAttribute('data-slot-index'));
+                if (existingSlotIndex > slotIndex) {
+                    amiiboSlotsList.insertBefore(slotCard, slots[i]);
+                    inserted = true;
+                    break;
+                }
+            }
+            if (!inserted) {
+                amiiboSlotsList.appendChild(slotCard);
+            }
+
+            // Update selection indicators
+            updateSlotSelectionIndicators(activeSlot);
+
+            console.log(`✅ Refreshed display for slot ${slotIndex}`);
         }
 
         async function clearSlot(slotIndex) {
@@ -3077,12 +3164,10 @@
                 updateUploadProgress('Saving configuration...', 60, 'Writing changes to device memory');
                 await ultra.sendCommand(CMD_SLOT_DATA_CONFIG_SAVE);
 
-                // Refresh the display, then enhance with rich Amiibo info
-                updateUploadProgress('Refreshing display...', 80, 'Updating slot cards');
-                await refreshAmiiboSlots();
-                if (allAmiibos.length > 0) {
-                    await enhanceSlotCardsWithAmiiboInfo();
-                }
+                // Refresh just this slot's display
+                updateUploadProgress('Refreshing display...', 80, 'Updating slot card');
+                await refreshSingleSlotDisplay(slotIndex);
+                // No need to enhance - it's empty now
 
                 updateUploadProgress('Clear complete!', 100, 'Slot has been successfully cleared');
                 setTimeout(() => {
@@ -3347,6 +3432,75 @@
             } catch (error) {
                 console.error('Error loading Amiibo list:', error);
                 setUploadStatus('Failed to load Amiibo database', 'error');
+            }
+        }
+
+        function updateSlotCardDisplay(slotCard, slotSummary, amiiboInfo, slotIndex) {
+            const isActive = slotCard.classList.contains('slot-selected');
+            const statusText = isActive ? ' (Currently Selected)' : '';
+
+            slotSummary.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                    <img src="${amiiboInfo.image}" alt="${amiiboInfo.name}"
+                         style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; background: #f0f0f0;">
+                    <div style="flex: 1;">
+                        <div style="font-weight: bold; color: #333;">${amiiboInfo.name}${statusText}</div>
+                        <div style="font-size: 0.85em; color: #666;">${amiiboInfo.amiiboSeries}</div>
+                    </div>
+                </div>
+                <div style="font-size: 0.8em; color: #888; line-height: 1.3;">
+                    <div><strong>Game Series:</strong> ${amiiboInfo.gameSeries}</div>
+                    <div><strong>Character:</strong> ${amiiboInfo.character}</div>
+                    <div><strong>Release (NA):</strong> ${amiiboInfo.release?.na || 'TBD'}</div>
+                    <div><strong>Amiibo ID:</strong> ${amiiboInfo.extractedId || amiiboInfo.id || 'Unknown'}</div>
+                </div>
+            `;
+        }
+
+        async function enhanceSingleSlotWithAmiiboInfo(slotIndex) {
+            if (!ultra || !ultra.device || !ultra.device.gatt.connected) {
+                console.log('Device not connected, skipping Amiibo info enhancement');
+                return;
+            }
+
+            console.log(`🎨 Enhancing slot ${slotIndex} with rich Amiibo information...`);
+
+            const slotCard = document.querySelector(`[data-slot-index="${slotIndex}"]`);
+            if (!slotCard) {
+                console.log(`❌ Slot card not found for index ${slotIndex}`);
+                return;
+            }
+
+            const slotSummary = slotCard.querySelector('.slot-summary');
+            if (!slotSummary) {
+                console.log(`❌ Slot summary not found for index ${slotIndex}`);
+                return;
+            }
+
+            // Check cache first
+            const cached = getCachedSlotData(slotIndex);
+            console.log(`Cache check for slot ${slotIndex}:`, cached);
+            if (cached && cached.amiiboDetails) {
+                console.log(`Using cached data for slot ${slotIndex}`);
+                updateSlotCardDisplay(slotCard, slotSummary, cached.amiiboDetails, slotIndex);
+                console.log(`✅ Enhanced slot ${slotIndex + 1} with cached Amiibo info: ${cached.amiiboDetails.name}`);
+                return;
+            }
+
+            // If not cached, we need to fetch from device
+            console.log(`No cache found, fetching from device for slot ${slotIndex}`);
+            try {
+                const amiiboInfo = await getSlotAmiiboInfo(slotIndex);
+                console.log(`Fetched amiibo info for slot ${slotIndex}:`, amiiboInfo);
+                if (amiiboInfo) {
+                    updateSlotCardDisplay(slotCard, slotSummary, amiiboInfo, slotIndex);
+                    setCachedSlotData(slotIndex, amiiboInfo.slotName || amiiboInfo.name, amiiboInfo.extractedId, amiiboInfo);
+                    console.log(`✅ Enhanced slot ${slotIndex + 1} with rich Amiibo info: ${amiiboInfo.name} (ID: ${amiiboInfo.extractedId})`);
+                } else {
+                    console.log(`❌ No amiibo info found for slot ${slotIndex}`);
+                }
+            } catch (error) {
+                console.log(`❌ Error enhancing slot ${slotIndex}:`, error);
             }
         }
 
@@ -3861,9 +4015,9 @@
                 const { pageData, uid } = await generateAmiiboData(selectedSlotAmiiboDetails, forceRandom);
                 await ultra.writeNtag215ToSlot(selectedSlotIndex, pageData, uid, selectedSlotAmiiboDetails.name);
                 setSlotStatus('Write successful!', 'success');
-                await refreshAmiiboSlots(); // Refresh slots after write
+                await refreshSingleSlotDisplay(selectedSlotIndex); // Refresh just this slot
                 if (allAmiibos.length > 0) {
-                    await enhanceSlotCardsWithAmiiboInfo();
+                    await enhanceSingleSlotWithAmiiboInfo(selectedSlotIndex);
                 }
                 closeSlotModal(); // Close modal after successful write
             } catch (error) {
@@ -3884,9 +4038,9 @@
                 const { pageData, uid } = await generateAmiiboData(selectedSlotAmiiboDetails, forceRandom);
                 await ultra.emulateNtag215(selectedSlotIndex, pageData, uid);
                 setSlotStatus('Emulation started!', 'success');
-                await refreshAmiiboSlots(); // Refresh slots after emulate
+                await refreshSingleSlotDisplay(selectedSlotIndex); // Refresh just this slot
                 if (allAmiibos.length > 0) {
-                    await enhanceSlotCardsWithAmiiboInfo();
+                    await enhanceSingleSlotWithAmiiboInfo(selectedSlotIndex);
                 }
                 closeSlotModal(); // Close modal after successful emulate
             } catch (error) {
@@ -4146,7 +4300,7 @@
             setTimeout(() => {
                 hideUploadProgress();
                 setUploadStatus(`Successfully started emulating ${name} on slot ${slot + 1}`, 'success');
-                refreshAmiiboSlots(); // Refresh slots after emulate
+                refreshSingleSlotDisplay(slot); // Refresh just this slot
             }, 1500);
         }
 
@@ -4500,12 +4654,17 @@
                 // Store values before closing modal since closeGenerateModal() sets them to null
                 const amiiboName = selectedAmiiboForGeneration.name;
                 const slotNumber = generateTargetSlot + 1;
+                const targetSlotIndex = generateTargetSlot;  // Store the 0-based index
 
-                setTimeout(() => {
+                setTimeout(async () => {
                     hideUploadProgress();
                     closeGenerateModal();
                     setUploadStatus(`Successfully started emulating ${amiiboName} on slot ${slotNumber}`, 'success');
-                    refreshAmiiboSlots(); // Refresh slots after emulate
+                    console.log(`Refreshing slot ${targetSlotIndex} after generate & emulate`);
+                    await refreshSingleSlotDisplay(targetSlotIndex); // Use the stored 0-based slot index
+                    if (allAmiibos.length > 0) {
+                        await enhanceSingleSlotWithAmiiboInfo(targetSlotIndex);
+                    }
                 }, 1500);
 
             } catch (error) {
@@ -4543,6 +4702,7 @@
                 // Store values before closing modal since closeGenerateModal() sets them to null
                 const amiiboName = selectedAmiiboForGeneration.name;
                 const slotNumber = generateTargetSlot + 1;
+                const targetSlotIndex = generateTargetSlot;  // Store the 0-based index
 
                 // Close progress modal and generate modal immediately, show success
                 setTimeout(() => {
@@ -4551,11 +4711,12 @@
                     setUploadStatus(`Successfully generated ${amiiboName} to slot ${slotNumber}`, 'success');
                 }, 1000);
 
-                // Refresh the slots display in background (non-blocking)
+                // Refresh just this slot's display in background (non-blocking)
                 setTimeout(async () => {
-                    await refreshAmiiboSlots();
+                    console.log(`Refreshing slot ${targetSlotIndex} after generate`);
+                    await refreshSingleSlotDisplay(targetSlotIndex);  // Use the stored 0-based slot index
                     if (allAmiibos.length > 0) {
-                        await enhanceSlotCardsWithAmiiboInfo();
+                        await enhanceSingleSlotWithAmiiboInfo(targetSlotIndex);
                     }
                 }, 1500);
 
