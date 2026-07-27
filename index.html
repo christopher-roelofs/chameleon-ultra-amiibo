@@ -3502,7 +3502,7 @@
 
             try {
                 console.log('Loading Amiibo list from API...');
-                const response = await fetch('https://www.amiiboapi.com/api/amiibo/');
+                const response = await fetch('https://www.amiiboapi.org/api/amiibo/');
                 const data = await response.json();
                 allAmiibos = data.amiibo.map(amiibo => ({
                     id: getAmiiboId(amiibo),
@@ -4512,7 +4512,7 @@
             // Cache miss or expired - fetch from API
             try {
                 debugLog('🌐 Fetching fresh amiibo data from API...');
-                const response = await fetch('https://www.amiiboapi.com/api/amiibo/');
+                const response = await fetch('https://www.amiiboapi.org/api/amiibo/');
                 const data = await response.json();
 
                 // Cache the fresh data
