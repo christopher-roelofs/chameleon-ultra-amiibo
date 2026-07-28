@@ -4,356 +4,699 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chameleon Ultra Amiibo Emulator</title>
+    <meta name="description" content="Write and emulate amiibo on a Chameleon Ultra directly from your browser over Web Bluetooth.">
+    <meta name="theme-color" content="#f6f7fb" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0c0f17" media="(prefers-color-scheme: dark)">
     <style>
+        /* ============================================================
+           Design tokens
+           ============================================================ */
+        :root {
+            color-scheme: light;
+            --bg: #f6f7fb;
+            --bg-grad-1: rgba(99, 102, 241, 0.10);
+            --bg-grad-2: rgba(16, 185, 129, 0.08);
+            --surface: #ffffff;
+            --surface-2: #f2f4f8;
+            --surface-3: #e8ebf2;
+            --border: #e2e6ee;
+            --border-strong: #ccd3e0;
+            --text: #131722;
+            --text-muted: #5c6478;
+            --text-faint: #8b93a7;
+            --accent: #4f46e5;
+            --accent-hover: #4338ca;
+            --accent-soft: rgba(79, 70, 229, 0.10);
+            --accent-ring: rgba(79, 70, 229, 0.35);
+            --success: #0f9d58;
+            --success-soft: rgba(15, 157, 88, 0.12);
+            --danger: #dc2626;
+            --danger-soft: rgba(220, 38, 38, 0.10);
+            --warning: #b45309;
+            --warning-soft: rgba(245, 158, 11, 0.14);
+            --info: #0369a1;
+            --info-soft: rgba(3, 105, 161, 0.10);
+            --radius-sm: 8px;
+            --radius: 12px;
+            --radius-lg: 18px;
+            --radius-pill: 999px;
+            --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
+            --shadow: 0 4px 16px -4px rgba(16, 24, 40, 0.10), 0 1px 3px rgba(16, 24, 40, 0.06);
+            --shadow-lg: 0 24px 60px -12px rgba(16, 24, 40, 0.28);
+            --header-bg: rgba(255, 255, 255, 0.72);
+            --scrim: rgba(15, 20, 32, 0.45);
+        }
+
+        :root[data-theme="dark"] {
+            color-scheme: dark;
+            --bg: #0c0f17;
+            --bg-grad-1: rgba(99, 102, 241, 0.18);
+            --bg-grad-2: rgba(16, 185, 129, 0.10);
+            --surface: #151a25;
+            --surface-2: #1b2130;
+            --surface-3: #232b3d;
+            --border: #262e3f;
+            --border-strong: #36405a;
+            --text: #e8ecf5;
+            --text-muted: #9aa4bb;
+            --text-faint: #6d7791;
+            --accent: #7c7cff;
+            --accent-hover: #9394ff;
+            --accent-soft: rgba(124, 124, 255, 0.16);
+            --accent-ring: rgba(124, 124, 255, 0.45);
+            --success: #34d399;
+            --success-soft: rgba(52, 211, 153, 0.16);
+            --danger: #f87171;
+            --danger-soft: rgba(248, 113, 113, 0.16);
+            --warning: #fbbf24;
+            --warning-soft: rgba(251, 191, 36, 0.16);
+            --info: #60c5fa;
+            --info-soft: rgba(96, 197, 250, 0.16);
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+            --shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 32px 70px -16px rgba(0, 0, 0, 0.75);
+            --header-bg: rgba(21, 26, 37, 0.72);
+            --scrim: rgba(4, 6, 12, 0.62);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                color-scheme: dark;
+                --bg: #0c0f17;
+                --bg-grad-1: rgba(99, 102, 241, 0.18);
+                --bg-grad-2: rgba(16, 185, 129, 0.10);
+                --surface: #151a25;
+                --surface-2: #1b2130;
+                --surface-3: #232b3d;
+                --border: #262e3f;
+                --border-strong: #36405a;
+                --text: #e8ecf5;
+                --text-muted: #9aa4bb;
+                --text-faint: #6d7791;
+                --accent: #7c7cff;
+                --accent-hover: #9394ff;
+                --accent-soft: rgba(124, 124, 255, 0.16);
+                --accent-ring: rgba(124, 124, 255, 0.45);
+                --success: #34d399;
+                --success-soft: rgba(52, 211, 153, 0.16);
+                --danger: #f87171;
+                --danger-soft: rgba(248, 113, 113, 0.16);
+                --warning: #fbbf24;
+                --warning-soft: rgba(251, 191, 36, 0.16);
+                --info: #60c5fa;
+                --info-soft: rgba(96, 197, 250, 0.16);
+                --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+                --shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.4);
+                --shadow-lg: 0 32px 70px -16px rgba(0, 0, 0, 0.75);
+                --header-bg: rgba(21, 26, 37, 0.72);
+                --scrim: rgba(4, 6, 12, 0.62);
+            }
+        }
+
+        /* ============================================================
+           Base
+           ============================================================ */
+        *, *::before, *::after { box-sizing: border-box; }
+
+        html { -webkit-text-size-adjust: 100%; }
+
         body {
-            font-family: sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            background-color: #f4f7f6;
-            color: #333;
+            margin: 0;
+            padding: 0 0 64px;
+            min-height: 100vh;
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                         "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+            font-size: 15px;
+            line-height: 1.5;
+            color: var(--text);
+            background:
+                radial-gradient(1100px 620px at 12% -10%, var(--bg-grad-1), transparent 60%),
+                radial-gradient(900px 520px at 92% 0%, var(--bg-grad-2), transparent 55%),
+                var(--bg);
+            background-attachment: fixed;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
-        h1, h2, h3 {
-            color: #2c3e50;
+
+        h1, h2, h3, h4 {
+            color: var(--text);
+            font-weight: 650;
+            letter-spacing: -0.015em;
+            margin: 0 0 4px;
         }
-        button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            margin: 5px;
+        h1 { font-size: 1.15rem; }
+        h2 { font-size: 1.05rem; }
+        h3 { font-size: 1rem; }
+        h4 { font-size: 0.9rem; }
+
+        p { margin: 0 0 8px; }
+
+        ::selection { background: var(--accent-soft); }
+
+        :focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
         }
-        button:hover {
-            background-color: #0056b3;
-        }
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        input[type="text"], input[type="number"], select {
-            padding: 10px;
-            font-size: 16px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            margin-bottom: 10px;
-        }
-        #connect-btn {
-            margin-bottom: 20px;
-        }
+
         .container {
-            max-width: 800px;
             width: 100%;
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 0 20px;
         }
 
-        #status-section {
-            margin-bottom: 20px;
-        }
+        .muted { color: var(--text-muted); }
+        .tiny { font-size: 0.8rem; }
 
-        #upload-status {
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            color: #333;
-        }
-
-        #upload-status.success {
-            background-color: #d4edda;
-            border-color: #c3e6cb;
-            color: #155724;
-        }
-
-        #upload-status.error {
-            background-color: #f8d7da;
-            border-color: #f5c6cb;
-            color: #721c24;
-        }
-
-        .upload-input {
-            display: none;
-        }
-        /* Modal Styles */
-        .modal {
-            display: none; /* Hidden by default */
-            position: fixed; /* Stay in place */
-            z-index: 1; /* Sit on top */
-            left: 0;
-            top: 0;
-            width: 100%; /* Full width */
-            height: 100%; /* Full height */
-            overflow: auto; /* Enable scroll if needed */
-            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
-            justify-content: center;
+        /* ============================================================
+           Buttons
+           ============================================================ */
+        button, .btn {
+            font: inherit;
+            font-weight: 550;
+            display: inline-flex;
             align-items: center;
-        }
-        .modal-content {
-            background-color: #fefefe;
-            margin: auto; /* Center the modal */
-            padding: 20px;
-            border: 1px solid #888;
-            border-radius: 10px;
-            width: 80%; /* Could be more responsive */
-            max-width: 700px;
-            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
-            animation-name: animatetop;
-            animation-duration: 0.4s;
-            display: flex; /* Use flex for inner content */
-            flex-direction: column;
-            gap: 20px;
-        }
-        /* Add Animation */
-        @-webkit-keyframes animatetop {
-            from {top: -300px; opacity: 0}
-            to {top: 0; opacity: 1}
-        }
-        @keyframes animatetop {
-            from {top: -300px; opacity: 0}
-            to {top: 0; opacity: 1}
-        }
-        .close-button {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-        }
-        .close-button:hover,
-        .close-button:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        #amiibo-info-and-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px; /* Reduced gap */
-            width: 100%;
-            /* max-width: 1200px; */ /* Removed as it's now inside modal */
-            margin-bottom: 0; /* Removed as it's now inside modal */
-        }
-        #amiibo-details {
-            flex: 2 1 400px; /* Allows it to grow and shrink, min-width 400px */
-            display: block; /* Always block inside modal */
-            background-color: #fff;
-            padding: 0; /* Padding handled by modal-content */
-            border-radius: 8px;
-            box-shadow: none; /* Shadow handled by modal-content */
-            text-align: left;
-        }
-        #amiibo-details h3 {
-            text-align: center;
-            margin-top: 0;
-        }
-        #amiibo-details-content {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
             justify-content: center;
-        }
-        #amiibo-details-image-container {
-            flex: 1 1 150px;
-            text-align: center;
-        }
-        #amiibo-details-image {
-            max-width: 150px;
-            height: auto;
-            border-radius: 5px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        #amiibo-details-info {
-            flex: 2 1 300px;
-        }
-        #amiibo-details-info p {
-            margin: 5px 0;
-            font-size: 1em;
-        }
-        #actions-container {
-            flex: 1 1 300px; /* Allows it to grow and shrink, min-width 300px */
-            display: block; /* Always block inside modal */
-            background-color: #fff;
-            padding: 0; /* Padding handled by modal-content */
-            border-radius: 8px;
-            box-shadow: none; /* Shadow handled by modal-content */
-            text-align: center;
-        }
-        #status {
-            margin-top: 15px;
-            font-weight: bold;
-            color: #555;
-        }
-        .status-success {
-            color: #28a745;
-        }
-        .status-error {
-            color: #dc3545;
-        }
-        .emulate-button {
-            background-color: #28a745;
-        }
-        #collections-section {
-            width: 100%;
-            max-width: 800px;
-            display: none;
-            margin-bottom: 30px;
-        }
-        #amiibo-slots {
-            width: 100%;
-            max-width: 800px;
-            display: none;
-        }
-        .well {
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 1px 1px rgba(0,0,0,.05);
-        }
-
-        .collection-item {
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 5px;
-            padding: 10px 15px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            gap: 7px;
+            padding: 9px 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid transparent;
+            background: var(--accent);
+            color: #fff;
             cursor: pointer;
-            transition: background-color 0.2s;
+            white-space: nowrap;
+            transition: background-color .16s ease, border-color .16s ease,
+                        transform .12s ease, box-shadow .16s ease, opacity .16s ease;
+        }
+        button:hover, .btn:hover { background: var(--accent-hover); }
+        button:active, .btn:active { transform: translateY(1px); }
+        button:disabled, .btn:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        button:disabled:hover { background: var(--accent); }
+
+        #connect-btn:disabled {
+            opacity: 1;
+            background: var(--success-soft);
+            color: var(--success);
+            border-color: transparent;
         }
 
-        .collection-item:hover {
-            background-color: #e9ecef;
+        .btn-secondary {
+            background: var(--surface-2);
+            color: var(--text);
+            border-color: var(--border);
+        }
+        .btn-secondary:hover {
+            background: var(--surface-3);
+            border-color: var(--border-strong);
+        }
+        .btn-secondary:disabled:hover { background: var(--surface-2); }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-muted);
+            border-color: transparent;
+        }
+        .btn-ghost:hover {
+            background: var(--surface-2);
+            color: var(--text);
         }
 
-        .collection-item.selected {
-            background-color: #cfe2ff;
-            border-color: #9ec5fe;
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover { background: var(--danger); filter: brightness(.92); }
+        .btn-danger:disabled:hover { background: var(--danger); }
+
+        .emulate-button, .btn-success { background: var(--success); }
+        .emulate-button:hover, .btn-success:hover { background: var(--success); filter: brightness(.93); }
+        .emulate-button:disabled:hover, .btn-success:disabled:hover { background: var(--success); }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            border-radius: var(--radius-sm);
         }
 
-        .collection-info {
-            flex-grow: 1;
+        .btn-pill { border-radius: var(--radius-pill); }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            border-radius: var(--radius-pill);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 1rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .icon-btn:hover {
+            background: var(--surface-2);
+            color: var(--text);
         }
 
-        .collection-name {
-            font-weight: bold;
-            font-size: 16px;
-            margin-bottom: 3px;
+        /* ============================================================
+           Form controls
+           ============================================================ */
+        input[type="text"], input[type="number"], input[type="file"],
+        select, textarea {
+            font: inherit;
+            width: 100%;
+            padding: 9px 12px;
+            color: var(--text);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            transition: border-color .16s ease, box-shadow .16s ease;
         }
-
-        .collection-description {
-            font-size: 13px;
-            color: #666;
+        input[type="text"]:hover, select:hover, textarea:hover {
+            border-color: var(--border-strong);
         }
-
-        .collection-count {
-            font-size: 12px;
-            color: #888;
-            margin-top: 3px;
+        input[type="text"]:focus, input[type="number"]:focus,
+        select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-ring);
         }
+        input::placeholder, textarea::placeholder { color: var(--text-faint); }
 
-        .collection-delete {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 3px;
+        input[type="file"] {
+            padding: 8px 10px;
+            background: var(--surface-2);
+            color: var(--text-muted);
+            font-size: 0.9rem;
             cursor: pointer;
-            font-size: 14px;
+        }
+        input[type="file"]::file-selector-button {
+            font: inherit;
+            font-weight: 550;
+            margin-right: 10px;
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            color: var(--text);
+            cursor: pointer;
         }
 
-        .collection-delete:hover {
-            background-color: #c82333;
+        select {
+            appearance: none;
+            background-image: linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+                              linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+            background-position: calc(100% - 17px) 50%, calc(100% - 12px) 50%;
+            background-size: 5px 5px, 5px 5px;
+            background-repeat: no-repeat;
+            padding-right: 34px;
         }
 
-        .form-group {
-            margin-bottom: 15px;
+        textarea {
+            resize: vertical;
+            min-height: 76px;
         }
 
+        input[type="checkbox"] {
+            accent-color: var(--accent);
+            width: 17px;
+            height: 17px;
+            cursor: pointer;
+            flex: none;
+        }
+
+        .form-group { margin-bottom: 16px; }
         .form-group label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #333;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
         }
 
-        .form-group input[type="text"],
-        .form-group textarea {
-            width: 100%;
-            padding: 8px;
-            font-size: 14px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 60px;
-        }
-
-        .checkbox-group {
+        .checkbox-group,
+        .switch-row {
             display: flex;
             align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .checkbox-group input[type="checkbox"] {
-            margin-right: 8px;
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-
-        .checkbox-group label {
+            gap: 10px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface-2);
             cursor: pointer;
             user-select: none;
+            font-size: 0.9rem;
         }
+        .checkbox-group label { cursor: pointer; margin: 0; }
 
-        .modal-buttons {
+        /* ============================================================
+           App header
+           ============================================================ */
+        .app-header {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            margin-bottom: 28px;
+            background: var(--header-bg);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: saturate(180%) blur(14px);
+            -webkit-backdrop-filter: saturate(180%) blur(14px);
+        }
+        .app-header-inner {
             display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-top: 20px;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            padding-top: 14px;
+            padding-bottom: 14px;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-right: auto;
+            min-width: 0;
+        }
+        .brand-mark {
+            display: grid;
+            place-items: center;
+            width: 38px;
+            height: 38px;
+            flex: none;
+            border-radius: 11px;
+            font-size: 19px;
+            background: linear-gradient(140deg, var(--accent), #22d3ee);
+            box-shadow: 0 6px 18px -6px var(--accent-ring);
+        }
+        .brand-text { min-width: 0; }
+        .brand-text h1 {
+            font-size: 1.02rem;
+            line-height: 1.25;
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .brand-text .subtitle {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
-        .collections-list {
-            max-height: 400px;
-            overflow-y: auto;
-            margin-bottom: 15px;
+        .keybar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding-bottom: 14px;
+            font-size: 0.87rem;
+        }
+        .keybar-note {
+            color: var(--text-faint);
+            font-size: 0.8rem;
+        }
+
+        /* Status pill (keys, connection) */
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 5px 12px;
+            border-radius: var(--radius-pill);
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            color: var(--text-muted);
+            font-size: 0.83rem;
+            font-weight: 550;
+            white-space: nowrap;
+        }
+        .pill::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: currentColor;
+            opacity: .8;
+        }
+        .pill-success {
+            color: var(--success);
+            background: var(--success-soft);
+            border-color: transparent;
+        }
+        .pill-danger {
+            color: var(--danger);
+            background: var(--danger-soft);
+            border-color: transparent;
+        }
+        .pill-warning {
+            color: var(--warning);
+            background: var(--warning-soft);
+            border-color: transparent;
+        }
+
+        /* Battery indicator */
+        #battery-status {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: var(--radius-pill);
+            border: 1px solid var(--border);
+            background: var(--surface);
+            box-shadow: var(--shadow);
+            font-size: 0.83rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+        #battery-status.battery-good { color: var(--success); border-color: var(--success); }
+        #battery-status.battery-medium { color: var(--warning); border-color: var(--warning); }
+        #battery-status.battery-low { color: var(--danger); border-color: var(--danger); }
+
+        /* ============================================================
+           Sections & cards
+           ============================================================ */
+        .section { margin-bottom: 30px; }
+        .section-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .section-head h2 { margin: 0; }
+        .section-head .section-sub {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+        .section-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* First-run / disconnected panel */
+        .welcome {
+            display: grid;
+            justify-items: center;
+            gap: 14px;
+            padding: 44px 24px;
+            text-align: center;
+        }
+        .welcome-mark {
+            display: grid;
+            place-items: center;
+            width: 60px;
+            height: 60px;
+            border-radius: 18px;
+            font-size: 27px;
+            background: var(--accent-soft);
+            border: 1px solid var(--border);
+        }
+        .welcome h2 { margin: 0; font-size: 1.2rem; }
+        .welcome p { max-width: 460px; margin: 0; color: var(--text-muted); }
+        .welcome-steps {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            padding: 0;
+            margin: 6px 0 0;
+        }
+        .welcome-steps li {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 14px;
+            border-radius: var(--radius-pill);
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+        .welcome-steps li span {
+            display: grid;
+            place-items: center;
+            width: 19px;
+            height: 19px;
+            border-radius: 50%;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+        #ble-unsupported {
+            display: none;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            background: var(--warning-soft);
+            color: var(--warning);
+            font-size: 0.85rem;
+            font-weight: 550;
+        }
+
+        .well, .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        #status-section { margin-bottom: 18px; }
+
+        #upload-status {
+            padding: 12px 14px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            font-size: 0.9rem;
+            font-weight: 550;
+        }
+        #upload-status.success {
+            background: var(--success-soft);
+            border-color: transparent;
+            color: var(--success);
+        }
+        #upload-status.error {
+            background: var(--danger-soft);
+            border-color: transparent;
+            color: var(--danger);
+        }
+
+        .upload-input { display: none; }
+
+        /* ============================================================
+           Slot cards
+           ============================================================ */
+        #amiibo-slots-list {
+            display: grid;
+            align-items: start;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 14px;
         }
 
         .slot {
-            border-left: 4px solid #007bff;
             position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 16px;
+            margin: 0;
+            overflow: hidden;
+            transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+        }
+        .slot::before {
+            content: "";
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: 3px;
+            background: var(--accent);
+            opacity: .85;
+        }
+        .slot:hover {
+            border-color: var(--border-strong);
+            box-shadow: var(--shadow);
         }
 
         .slot-title {
-            font-size: 16px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: .09em;
+            text-transform: uppercase;
+            color: var(--text-faint);
         }
 
         .slot-summary {
-            font-size: 14px;
-            color: #666;
+            flex: 1;
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            line-height: 1.45;
+        }
+
+        .slot-empty::before { background: var(--border-strong); opacity: .6; }
+        .slot-empty .slot-title { color: var(--text-faint); }
+        .slot-empty .slot-summary { color: var(--text-faint); }
+
+        .slot-selected { border-color: var(--success); }
+        .slot-selected::before { background: var(--success); opacity: 1; }
+        .slot-selected .slot-title { color: var(--success); }
+
+        /* Rich amiibo summary inside a slot */
+        .amiibo-line {
+            display: flex;
+            align-items: center;
+            gap: 12px;
             margin-bottom: 10px;
-            line-height: 1.4;
         }
-
-        .slot-summary img {
-            border: 1px solid #ddd;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        .amiibo-line img {
+            width: 44px;
+            height: 44px;
+            flex: none;
+            object-fit: contain;
+            border-radius: var(--radius-sm);
+            background: var(--surface-2);
+            padding: 3px;
         }
-
-        .slot-summary img:hover {
-            transform: scale(1.1);
-            transition: transform 0.2s ease;
+        .amiibo-line-name {
+            font-weight: 650;
+            color: var(--text);
+            font-size: 0.95rem;
+        }
+        .amiibo-line-series {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        .amiibo-meta {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 2px 10px;
+            font-size: 0.78rem;
+            color: var(--text-faint);
+        }
+        .amiibo-meta dt { font-weight: 600; }
+        .amiibo-meta dd { margin: 0; }
+        .badge-active {
+            display: inline-block;
+            margin-left: 6px;
+            padding: 1px 8px;
+            border-radius: var(--radius-pill);
+            background: var(--success-soft);
+            color: var(--success);
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            vertical-align: middle;
         }
 
         .slot-links {
@@ -361,269 +704,701 @@
             padding: 0;
             margin: 0;
             display: flex;
-            gap: 15px;
             flex-wrap: wrap;
+            gap: 6px;
+        }
+        .slot-links li { margin: 0; }
+        .slot-links a {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 12px;
+            border-radius: var(--radius-pill);
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            font-weight: 550;
+            text-decoration: none;
+            transition: background-color .16s ease, color .16s ease, border-color .16s ease;
+        }
+        .slot-links a:hover {
+            background: var(--accent-soft);
+            border-color: transparent;
+            color: var(--accent);
+            text-decoration: none;
         }
 
-        .slot-links li {
+        /* ============================================================
+           Collections
+           ============================================================ */
+        .collections-list {
+            max-height: 380px;
+            overflow-y: auto;
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .collection-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface-2);
+            cursor: pointer;
+            transition: background-color .16s ease, border-color .16s ease;
+        }
+        .collection-item:hover { border-color: var(--border-strong); }
+        .collection-item.selected {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+        }
+        .collection-info { flex-grow: 1; min-width: 0; }
+        .collection-name { font-weight: 650; font-size: 0.95rem; }
+        .collection-description { font-size: 0.83rem; color: var(--text-muted); }
+        .collection-count { font-size: 0.76rem; color: var(--text-faint); margin-top: 2px; }
+        .collection-delete {
+            padding: 5px 11px;
+            font-size: 0.8rem;
+            border-radius: var(--radius-sm);
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--danger);
+        }
+        .collection-delete:hover {
+            background: var(--danger-soft);
+            border-color: transparent;
+        }
+
+        /* ============================================================
+           Modals
+           ============================================================ */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            overflow-y: auto;
+            padding: 24px 16px;
+            background: var(--scrim);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn .18s ease;
+        }
+
+        .modal-content {
+            position: relative;
+            margin: auto;
+            width: 100%;
+            max-width: 640px;
+            max-height: calc(100vh - 48px);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            padding: 24px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            animation: modalIn .22s cubic-bezier(.2, .8, .3, 1);
+        }
+        .modal-content > h3 { padding-right: 32px; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: translateY(12px) scale(.98); }
+            to { opacity: 1; transform: none; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: .001ms !important;
+                transition-duration: .001ms !important;
+            }
+        }
+
+        .close-button {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            display: grid;
+            place-items: center;
+            width: 30px;
+            height: 30px;
+            border-radius: var(--radius-pill);
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            color: var(--text-faint);
+            font-size: 18px;
+            line-height: 1;
+            cursor: pointer;
+            z-index: 1;
+            transition: background-color .16s ease, color .16s ease;
+        }
+        .close-button:hover, .close-button:focus {
+            background: var(--surface-3);
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .modal-buttons,
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+
+        .modal-note {
+            font-size: 0.85rem;
+            color: var(--text-muted);
             margin: 0;
         }
 
-        .slot-links a {
-            color: #007bff;
-            text-decoration: none;
-            font-size: 14px;
-            padding: 4px 8px;
-            border-radius: 3px;
-            transition: background-color 0.2s;
+        /* Amiibo detail / actions modal */
+        #amiibo-info-and-actions,
+        #slot-info-and-actions {
+            display: grid;
+            grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+            align-items: start;
+            gap: 20px;
+            width: 100%;
+            margin-top: 8px;
+        }
+        @media (max-width: 640px) {
+            #amiibo-info-and-actions,
+            #slot-info-and-actions { grid-template-columns: 1fr; }
         }
 
-        .slot-links a:hover {
-            background-color: #f8f9fa;
-            text-decoration: underline;
+        #amiibo-details, #slot-details,
+        #actions-container, #slot-actions-container {
+            min-width: 0;
+            text-align: left;
+        }
+        #amiibo-details h3, #slot-details h3,
+        #actions-container h3, #slot-actions-container h3 {
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: .09em;
+            text-transform: uppercase;
+            color: var(--text-faint);
+            margin-bottom: 12px;
         }
 
-        .slot-empty {
-            border-left-color: #ccc;
+        #amiibo-details-content, #slot-details-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
         }
-
-        .slot-empty .slot-title {
-            color: #999;
+        #amiibo-details-image-container, #slot-details-image-container {
+            flex: 0 0 120px;
         }
-
-        .slot-selected {
-            border-left-color: #28a745;
-        }
-
-        .slot-selected .slot-title {
-            color: #28a745;
-        }
-        .amiibo-details.emulating {
-            border: 2px solid #28a745; /* Green border for emulating */
-            box-shadow: 0 0 10px rgba(40, 167, 69, 0.5); /* Green glow */
-        }
-
-        @media (max-width: 768px) {
-            .modal-content {
-                width: 95%;
-                padding: 10px;
-            }
-
-            body {
-                padding: 10px;
-            }
-
-            .slot-links {
-                flex-direction: column;
-                gap: 8px;
-                align-items: flex-start;
-            }
-
-            .slot-links a {
-                display: inline-block;
-                padding: 8px 12px;
-                background-color: #f8f9fa;
-                border: 1px solid #dee2e6;
-                border-radius: 4px;
-                width: 100%;
-                text-align: center;
-                box-sizing: border-box;
-            }
-
-            .well {
-                padding: 12px;
-                margin-bottom: 12px;
-            }
-        }
-
-        /* Recent Amiibo Cards */
-        .recent-amiibo-card {
-            flex-shrink: 0;
-            width: 80px;
+        #amiibo-details-image, #slot-details-image {
+            width: 100%;
+            max-width: 130px;
+            height: auto;
             padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            background: white;
+            border-radius: var(--radius);
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+        }
+        #amiibo-details-info, #slot-details-info {
+            flex: 1 1 200px;
+            min-width: 0;
+        }
+        #amiibo-details-info p, #slot-details-info p {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 0;
+            padding: 6px 0;
+            font-size: 0.85rem;
+            color: var(--text);
+            border-bottom: 1px solid var(--border);
+        }
+        #amiibo-details-info p:last-child, #slot-details-info p:last-child { border-bottom: 0; }
+        #amiibo-details-info strong, #slot-details-info strong {
+            font-weight: 550;
+            color: var(--text-muted);
+        }
+
+        #actions-container, #slot-actions-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface-2);
+        }
+        #actions-container button, #slot-actions-container button { width: 100%; }
+
+        #status, #slot-status {
+            margin: 4px 0 0;
+            font-size: 0.85rem;
+            font-weight: 550;
+            color: var(--text-muted);
             text-align: center;
         }
+        .status-success { color: var(--success); }
+        .status-error { color: var(--danger); }
 
-        .recent-amiibo-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-            border-color: #007bff;
+        #selected-slot-details {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0;
         }
 
-        .recent-amiibo-card.selected {
-            border-color: #007bff;
-            background-color: #e7f3ff;
+        .amiibo-details.emulating {
+            border: 1px solid var(--success);
+            box-shadow: 0 0 0 4px var(--success-soft);
         }
 
-        .recent-amiibo-card img {
-            width: 60px;
-            height: 60px;
-            border-radius: 4px;
-            margin-bottom: 4px;
+        /* Inline status inside modals */
+        .inline-status {
+            display: none;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 0.86rem;
+            font-weight: 550;
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            color: var(--text-muted);
         }
+        .inline-status.is-success { background: var(--success-soft); color: var(--success); border-color: transparent; }
+        .inline-status.is-error { background: var(--danger-soft); color: var(--danger); border-color: transparent; }
+        .inline-status.is-info { background: var(--info-soft); color: var(--info); border-color: transparent; }
 
-        .recent-amiibo-card .name {
-            font-size: 11px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        /* Generate Modal Tabs */
+        /* ============================================================
+           Tabs
+           ============================================================ */
         .generate-tabs {
             display: flex;
-            border-bottom: 2px solid #f0f0f0;
-            margin-bottom: 20px;
+            gap: 4px;
+            padding: 4px;
+            border-radius: var(--radius);
+            background: var(--surface-2);
+            border: 1px solid var(--border);
         }
-
         .tab-btn {
-            background: none;
-            border: none;
-            padding: 12px 20px;
-            cursor: pointer;
-            font-size: 14px;
-            color: #666;
-            border-bottom: 2px solid transparent;
-            transition: all 0.2s ease;
             flex: 1;
+            padding: 8px 14px;
+            font-size: 0.87rem;
+            font-weight: 550;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: transparent;
+            color: var(--text-muted);
         }
-
         .tab-btn:hover {
-            color: #007bff;
-            background-color: #f8f9fa;
+            background: var(--surface-3);
+            color: var(--text);
         }
-
         .tab-btn.active {
-            color: #007bff;
-            border-bottom-color: #007bff;
-            background-color: #f8f9fa;
+            background: var(--surface);
+            color: var(--text);
+            box-shadow: var(--shadow-sm);
         }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
 
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
+        /* ============================================================
+           Amiibo cards / search results
+           ============================================================ */
+        .card-strip {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 4px 2px 12px;
+            min-height: 132px;
+            align-items: flex-start;
+            scrollbar-width: thin;
         }
 
         .recent-amiibo-card, .favorite-amiibo-card {
             position: relative;
+            flex-shrink: 0;
+            width: 92px;
+            padding: 10px 8px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            cursor: pointer;
+            text-align: center;
+            transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+        }
+        .recent-amiibo-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent);
+            box-shadow: var(--shadow);
+        }
+        .recent-amiibo-card.selected {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+        }
+        .recent-amiibo-card img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            border-radius: var(--radius-sm);
+            margin-bottom: 6px;
+        }
+        .recent-amiibo-card .name {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .card-star {
+            position: absolute;
+            top: 4px;
+            right: 5px;
+            font-size: 11px;
         }
 
-        /* Glass button hover effects */
-        .glass-btn {
-            background: rgba(0,0,0,0.05);
-            border: 1px solid rgba(0,0,0,0.1);
-            color: #495057;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
+        .empty-state {
+            width: 100%;
+            padding: 34px 12px;
+            text-align: center;
+            color: var(--text-faint);
+            font-size: 0.88rem;
+        }
+        .empty-state small { display: block; margin-top: 4px; opacity: .8; }
+
+        .search-filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            margin-top: 10px;
+        }
+        .search-filters .filter { flex: 1 1 160px; min-width: 140px; }
+        .search-filters label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-muted);
         }
 
-        .glass-btn:hover {
-            background: rgba(0,0,0,0.08);
-            border: 1px solid rgba(0,0,0,0.15);
-            transform: translateY(-1px);
-            color: #212529;
+        #results-info {
+            display: none;
+            margin: 12px 0 6px;
+            font-size: 0.8rem;
+            color: var(--text-faint);
         }
 
-        .glass-btn:active {
-            transform: translateY(0);
+        #amiibo-search-results {
+            display: none;
+            max-height: 320px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+        }
+
+        .result-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background-color .14s ease;
+        }
+        .result-item:last-child { border-bottom: 0; }
+        .result-item:hover { background: var(--surface-2); }
+        .result-item img {
+            width: 46px;
+            height: 46px;
+            flex: none;
+            object-fit: contain;
+            border-radius: var(--radius-sm);
+            background: var(--surface-2);
+            padding: 3px;
+        }
+        .result-body { flex: 1; min-width: 0; }
+        .result-name { font-weight: 600; font-size: 0.9rem; }
+        .result-sub { font-size: 0.8rem; color: var(--text-muted); }
+        .result-foot {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 2px;
+            font-size: 0.75rem;
+        }
+        .result-id { color: var(--text-faint); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+        .result-release { color: var(--accent); }
+
+        .selected-amiibo-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface-2);
+            margin-bottom: 16px;
+        }
+        .selected-amiibo-row img {
+            width: 56px;
+            height: 56px;
+            object-fit: contain;
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            padding: 4px;
+        }
+        .selected-amiibo-row .meta { flex: 1; min-width: 120px; }
+        .selected-amiibo-row .meta .name { font-weight: 650; }
+        .selected-amiibo-row .meta .series { font-size: 0.83rem; color: var(--text-muted); }
+        .selected-amiibo-row .meta .id {
+            font-size: 0.76rem;
+            color: var(--text-faint);
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+        .fav-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        /* ============================================================
+           Toasts
+           ============================================================ */
+        #notification-container {
+            position: fixed;
+            top: 124px;
+            right: 18px;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: min(380px, calc(100vw - 36px));
+            pointer-events: none;
+        }
+
+        .toast {
+            pointer-events: auto;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 13px 14px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            box-shadow: var(--shadow);
+            font-size: 0.88rem;
+            line-height: 1.45;
+            opacity: 0;
+            transform: translateX(110%);
+            transition: opacity .28s ease, transform .28s cubic-bezier(.2, .8, .3, 1);
+        }
+        .toast.show { opacity: 1; transform: none; }
+        .toast-icon {
+            display: grid;
+            place-items: center;
+            width: 20px;
+            height: 20px;
+            flex: none;
+            border-radius: 50%;
+            font-size: 12px;
+            font-weight: 700;
+            color: #fff;
+            background: var(--text-faint);
+        }
+        .toast-body { flex: 1; min-width: 0; }
+        .toast-close {
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            flex: none;
+            background: none;
+            border: none;
+            color: var(--text-faint);
+            font-size: 16px;
+            line-height: 1;
+        }
+        .toast-close:hover { background: none; color: var(--text); }
+        .toast-success .toast-icon { background: var(--success); }
+        .toast-error .toast-icon { background: var(--danger); }
+        .toast-warning .toast-icon { background: var(--warning); }
+        .toast-info .toast-icon { background: var(--info); }
+
+        /* ============================================================
+           Progress modal
+           ============================================================ */
+        .progress-track {
+            width: 100%;
+            height: 10px;
+            border-radius: var(--radius-pill);
+            background: var(--surface-3);
+            overflow: hidden;
+        }
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            border-radius: var(--radius-pill);
+            background: linear-gradient(90deg, var(--accent), #22d3ee);
+            transition: width .3s ease;
+        }
+        .progress-percent {
+            font-variant-numeric: tabular-nums;
+            font-weight: 650;
+            color: var(--text);
+        }
+
+        /* ============================================================
+           Responsive
+           ============================================================ */
+        @media (max-width: 720px) {
+            body { font-size: 14.5px; }
+            .container { padding: 0 14px; }
+            #amiibo-slots-list { grid-template-columns: 1fr; }
+            .modal { padding: 14px 10px; }
+            .modal-content { padding: 18px; border-radius: var(--radius); }
+            .brand-text .subtitle { display: none; }
+            #notification-container { top: auto; bottom: 14px; right: 12px; left: 12px; width: auto; }
+            .modal-buttons, .modal-actions { justify-content: stretch; }
+            .modal-buttons button, .modal-actions button { flex: 1 1 120px; }
         }
     </style>
 
+    <script>
+        // Apply the stored theme before first paint to avoid a flash
+        (function () {
+            try {
+                var stored = localStorage.getItem('theme');
+                if (stored === 'light' || stored === 'dark') {
+                    document.documentElement.setAttribute('data-theme', stored);
+                }
+            } catch (e) { /* storage unavailable */ }
+        })();
+    </script>
 </head>
 <body>
-    <!-- Header Section -->
-    <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); color: #333; padding: 20px; margin-bottom: 20px; border-bottom: 1px solid #dee2e6;">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-            <!-- Title -->
-            <h1 style="margin: 0; font-size: 1.8em; font-weight: 300;">Chameleon Ultra Amiibo Emulator</h1>
+    <!-- Header -->
+    <header class="app-header">
+        <div class="container app-header-inner">
+            <div class="brand">
+                <div class="brand-mark">🦎</div>
+                <div class="brand-text">
+                    <h1>Chameleon Ultra Amiibo</h1>
+                    <div class="subtitle">Write &amp; emulate amiibo over Web Bluetooth</div>
+                </div>
+            </div>
 
-            <!-- Connection Controls -->
-            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                <button id="connect-btn" class="glass-btn" style="padding: 8px 16px; border-radius: 20px; height: 36px;">Connect</button>
-                <button id="refresh-slots-btn" class="glass-btn" style="padding: 8px 16px; border-radius: 20px; height: 36px; display: none;">Refresh</button>
+            <div class="header-actions">
+                <button id="refresh-slots-btn" class="btn-secondary btn-pill" style="display: none;">↻ Refresh</button>
+                <button id="connect-btn" class="btn-pill">Connect device</button>
+                <div id="battery-status" title="Battery">
+                    <span id="battery-icon">🔋</span> <span id="battery-text">---%</span>
+                </div>
+                <button id="theme-toggle" class="icon-btn" type="button" title="Toggle theme" aria-label="Toggle color theme">◐</button>
             </div>
         </div>
 
-        <!-- Compact Keys Section -->
-        <div style="margin-top: 15px; display: flex; align-items: center; flex-wrap: wrap; gap: 15px; font-size: 0.9em;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <span style="opacity: 0.7; color: #495057;">🔑 Keys:</span>
-                <div id="key-status" style="padding: 4px 8px; border-radius: 12px; background: rgba(0,0,0,0.05); backdrop-filter: blur(10px); min-width: 120px; text-align: center; color: #495057;">No keys loaded</div>
-            </div>
-            <div style="display: flex; gap: 8px;">
-                <input type="file" id="key-file-input" accept=".bin" style="display: none;">
-                <button id="load-keys-btn" onclick="document.getElementById('key-file-input').click();" class="glass-btn" style="padding: 4px 12px; border-radius: 15px; font-size: 0.85em;">Upload</button>
-                <button id="clear-keys-btn" class="glass-btn" style="padding: 4px 12px; border-radius: 15px; font-size: 0.85em; display: none;">Clear</button>
-            </div>
-            <div style="opacity: 0.6; font-size: 0.8em; max-width: 300px; color: #6c757d;">Upload key_retail.bin to generate encrypted amiibo files</div>
+        <div class="container keybar">
+            <span class="muted">🔑 Retail keys</span>
+            <div id="key-status" class="pill">No keys loaded</div>
+            <input type="file" id="key-file-input" accept=".bin" style="display: none;">
+            <button id="load-keys-btn" class="btn-secondary btn-sm btn-pill" onclick="document.getElementById('key-file-input').click();">Upload</button>
+            <button id="clear-keys-btn" class="btn-ghost btn-sm btn-pill" style="display: none;">Clear</button>
+            <span class="keybar-note">key_retail.bin is required to generate encrypted amiibo</span>
         </div>
-    </div>
-
-    <!-- Battery Status -->
-    <div id="battery-status" style="position: fixed; top: 20px; right: 20px; z-index: 1001; background: rgba(255,255,255,0.9); padding: 8px 12px; border-radius: 20px; border: 1px solid #ddd; font-size: 0.9em; display: none; backdrop-filter: blur(5px);">
-        <span id="battery-icon">🔋</span> <span id="battery-text">---%</span>
-    </div>
+    </header>
 
     <!-- Notification Container -->
-    <div id="notification-container" style="position: fixed; top: 60px; right: 20px; z-index: 1000; max-width: 400px;"></div>
+    <div id="notification-container"></div>
 
     <div class="container">
         <div id="status-section" style="display: none;">
-            <div id="upload-status" style="font-weight: bold; margin-bottom: 20px; padding: 10px; border-radius: 4px;"></div>
+            <div id="upload-status"></div>
         </div>
 
-        <div id="collections-section">
-            <h2>Collections</h2>
-            <div style="margin-bottom: 20px;">
-                <button id="save-collection-btn">Save Collection</button>
-                <button id="load-collection-btn">Load Collection</button>
-                <button id="export-collections-btn">Export All</button>
-                <button id="import-collections-btn">Import</button>
-                <input type="file" id="import-collections-input" accept=".json" style="display: none;">
+        <section id="welcome-panel" class="section">
+            <div class="card welcome">
+                <div class="welcome-mark">🔌</div>
+                <h2>Connect your Chameleon Ultra</h2>
+                <p>Pair over Bluetooth to browse the eight tag slots, upload amiibo dumps, generate new tags, and emulate them straight from the browser.</p>
+                <button id="welcome-connect-btn">Connect device</button>
+                <ul class="welcome-steps">
+                    <li><span>1</span> Power on the device</li>
+                    <li><span>2</span> Pair over Bluetooth</li>
+                    <li><span>3</span> Upload or generate an amiibo</li>
+                </ul>
+                <p id="ble-unsupported">Web Bluetooth isn't available in this browser. Use Chrome, Edge, or another Chromium-based browser on desktop or Android.</p>
             </div>
-        </div>
+        </section>
 
-        <div id="amiibo-slots">
-            <h2>Amiibo Tags</h2>
+        <section id="collections-section" class="section" style="display: none;">
+            <div class="section-head">
+                <div>
+                    <h2>Collections</h2>
+                    <div class="section-sub">Save and restore full 8-slot line-ups</div>
+                </div>
+                <div class="section-actions">
+                    <button id="save-collection-btn" class="btn-secondary btn-sm">Save</button>
+                    <button id="load-collection-btn" class="btn-secondary btn-sm">Load</button>
+                    <button id="export-collections-btn" class="btn-ghost btn-sm">Export all</button>
+                    <button id="import-collections-btn" class="btn-ghost btn-sm">Import</button>
+                    <input type="file" id="import-collections-input" accept=".json" style="display: none;">
+                </div>
+            </div>
+        </section>
+
+        <section id="amiibo-slots" class="section" style="display: none;">
+            <div class="section-head">
+                <div>
+                    <h2>Amiibo tags</h2>
+                    <div class="section-sub">8 device slots — upload, generate, emulate</div>
+                </div>
+            </div>
             <div id="amiibo-slots-list"></div>
-        </div>
+        </section>
     </div>
 
-    <!-- The Modal -->
+    <!-- Amiibo Details Modal -->
     <div id="amiiboModal" class="modal">
-        <!-- Modal content -->
         <div class="modal-content">
             <span class="close-button">&times;</span>
             <div id="amiibo-info-and-actions">
                 <div id="amiibo-details">
-                    <h3>Selected Amiibo Details</h3>
+                    <h3>Selected amiibo</h3>
                     <div id="amiibo-details-content">
                         <div id="amiibo-details-image-container">
                             <img id="amiibo-details-image" src="" alt="Amiibo Image">
                         </div>
                         <div id="amiibo-details-info">
-                            <p><strong>Name:</strong> <span id="detail-name"></span></p>
-                            <p><strong>Amiibo Series:</strong> <span id="detail-amiibo-series"></span></p>
-                            <p><strong>Game Series:</strong> <span id="detail-game-series"></span></p>
-                            <p><strong>Release (NA):</strong> <span id="detail-release-na"></span></p>
-                            <p><strong>Release (EU):</strong> <span id="detail-release-eu"></span></p>
-                            <p><strong>Release (JP):</strong> <span id="detail-release-jp"></span></p>
-                            <p><strong>Release (AU):</strong> <span id="detail-release-au"></span></p>
+                            <p><strong>Name</strong> <span id="detail-name"></span></p>
+                            <p><strong>Amiibo Series</strong> <span id="detail-amiibo-series"></span></p>
+                            <p><strong>Game Series</strong> <span id="detail-game-series"></span></p>
+                            <p><strong>Release (NA)</strong> <span id="detail-release-na"></span></p>
+                            <p><strong>Release (EU)</strong> <span id="detail-release-eu"></span></p>
+                            <p><strong>Release (JP)</strong> <span id="detail-release-jp"></span></p>
+                            <p><strong>Release (AU)</strong> <span id="detail-release-au"></span></p>
                         </div>
                     </div>
                 </div>
 
                 <div id="actions-container">
                     <h3>Actions</h3>
-                    <p id="selected-slot-details">Select a slot to see details</p> <!-- New: Element to display selected slot details -->
+                    <p id="selected-slot-details">Select a slot to see details</p>
                     <select id="slot-select">
                         <option value="0">Slot 1</option>
                         <option value="1">Slot 2</option>
@@ -634,15 +1409,13 @@
                         <option value="6">Slot 7</option>
                         <option value="7">Slot 8</option>
                     </select>
-                    <div style="margin: 10px 0;">
-                        <label style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="random-uid-toggle" style="cursor: pointer;">
-                            <span>Use Random UID</span>
-                        </label>
-                    </div>
-                    <button id="write-btn">Write to Slot</button>
-                    <button id="emulate-btn">Emulate</button>
-                    <button id="download-amiibo-btn">Download .bin</button>
+                    <label class="switch-row">
+                        <input type="checkbox" id="random-uid-toggle">
+                        <span>Use random UID</span>
+                    </label>
+                    <button id="write-btn">Write to slot</button>
+                    <button id="emulate-btn" class="emulate-button">Emulate</button>
+                    <button id="download-amiibo-btn" class="btn-secondary">Download .bin</button>
                     <p id="status"></p>
                 </div>
             </div>
@@ -655,34 +1428,32 @@
             <span class="close-button" id="slot-close-button">&times;</span>
             <div id="slot-info-and-actions">
                 <div id="slot-details">
-                    <h3>Slot Details</h3>
+                    <h3>Slot details</h3>
                     <div id="slot-details-content">
                         <div id="slot-details-image-container">
                             <img id="slot-details-image" src="" alt="Amiibo Image">
                         </div>
                         <div id="slot-details-info">
-                            <p><strong>Slot:</strong> <span id="slot-detail-slot"></span></p>
-                            <p><strong>Name:</strong> <span id="slot-detail-name"></span></p>
-                            <p><strong>Amiibo Series:</strong> <span id="slot-detail-amiibo-series"></span></p>
-                            <p><strong>Game Series:</strong> <span id="slot-detail-game-series"></span></p>
-                            <p><strong>Release (NA):</strong> <span id="slot-detail-release-na"></span></p>
-                            <p><strong>Release (EU):</strong> <span id="slot-detail-release-eu"></span></p>
-                            <p><strong>Release (JP):</strong> <span id="slot-detail-release-jp"></span></p>
-                            <p><strong>Release (AU):</strong> <span id="slot-detail-release-au"></span></p>
+                            <p><strong>Slot</strong> <span id="slot-detail-slot"></span></p>
+                            <p><strong>Name</strong> <span id="slot-detail-name"></span></p>
+                            <p><strong>Amiibo Series</strong> <span id="slot-detail-amiibo-series"></span></p>
+                            <p><strong>Game Series</strong> <span id="slot-detail-game-series"></span></p>
+                            <p><strong>Release (NA)</strong> <span id="slot-detail-release-na"></span></p>
+                            <p><strong>Release (EU)</strong> <span id="slot-detail-release-eu"></span></p>
+                            <p><strong>Release (JP)</strong> <span id="slot-detail-release-jp"></span></p>
+                            <p><strong>Release (AU)</strong> <span id="slot-detail-release-au"></span></p>
                         </div>
                     </div>
                 </div>
 
                 <div id="slot-actions-container">
                     <h3>Actions</h3>
-                    <div style="margin: 10px 0;">
-                        <label style="display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="slot-random-uid-toggle" style="cursor: pointer;">
-                            <span>Use Random UID</span>
-                        </label>
-                    </div>
-                    <button id="slot-write-btn">Write to Slot</button>
-                    <button id="slot-emulate-btn">Emulate</button>
+                    <label class="switch-row">
+                        <input type="checkbox" id="slot-random-uid-toggle">
+                        <span>Use random UID</span>
+                    </label>
+                    <button id="slot-write-btn">Write to slot</button>
+                    <button id="slot-emulate-btn" class="emulate-button">Emulate</button>
                     <p id="slot-status"></p>
                 </div>
             </div>
@@ -691,27 +1462,29 @@
 
     <!-- Clear Slot Confirmation Modal -->
     <div id="clearSlotModal" class="modal">
-        <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-content" style="max-width: 420px;">
             <span class="close-button" id="clear-close-button">&times;</span>
-            <h3>Clear Slot</h3>
-            <p>Are you sure you want to clear <strong id="clear-slot-name">Slot X</strong>?</p>
-            <p style="color: #666; font-size: 0.9em;">This will permanently delete the Amiibo data from the device.</p>
-            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-                <button id="clear-cancel-btn" style="background-color: #6c757d;">Cancel</button>
-                <button id="clear-confirm-btn" style="background-color: #dc3545;">Clear Slot</button>
+            <div>
+                <h3>Clear slot</h3>
+                <p class="modal-note">Clear <strong id="clear-slot-name">Slot X</strong>? This permanently deletes the amiibo data from the device.</p>
+            </div>
+            <div class="modal-buttons">
+                <button id="clear-cancel-btn" class="btn-secondary">Cancel</button>
+                <button id="clear-confirm-btn" class="btn-danger">Clear slot</button>
             </div>
         </div>
     </div>
 
     <!-- Randomize UID Modal -->
     <div id="randomizeModal" class="modal">
-        <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-content" style="max-width: 460px;">
             <span class="close-button" id="randomize-close-button">&times;</span>
-            <h3>Randomize UID</h3>
-            <p>Generate a new random UID for <strong id="randomize-slot-name">Slot X</strong>?</p>
-            <p style="color: #666; font-size: 0.9em;">You can either write the new UID to the slot permanently (persists after reboot) or emulate it temporarily (lost after reboot).</p>
-            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-                <button id="randomize-cancel-btn" style="background-color: #6c757d;">Cancel</button>
+            <div>
+                <h3>Randomize UID</h3>
+                <p class="modal-note">Generate a new random UID for <strong id="randomize-slot-name">Slot X</strong>. Writing persists after reboot; emulating is temporary.</p>
+            </div>
+            <div class="modal-buttons">
+                <button id="randomize-cancel-btn" class="btn-secondary">Cancel</button>
                 <button id="randomize-write-btn">Write</button>
                 <button id="randomize-emulate-btn" class="emulate-button">Emulate</button>
             </div>
@@ -720,49 +1493,52 @@
 
     <!-- Upload Modal -->
     <div id="uploadModal" class="modal">
-        <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-content" style="max-width: 460px;">
             <span class="close-button" id="upload-close-button">&times;</span>
-            <h3>Upload Amiibo to <span id="upload-slot-name">Slot X</span></h3>
+            <h3>Upload amiibo to <span id="upload-slot-name">Slot X</span></h3>
 
-            <div style="margin-bottom: 15px;">
-                <input type="file" id="upload-file-input" accept=".bin,.nfc" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; margin-right: 10px;">
+            <div class="form-group" style="margin: 0;">
+                <label for="upload-file-input">Amiibo dump (.bin or .nfc)</label>
+                <input type="file" id="upload-file-input" accept=".bin,.nfc">
             </div>
 
-            <div id="upload-randomize-section" style="margin-bottom: 15px; display: none;">
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                    <input type="checkbox" id="upload-randomize-uid" style="cursor: pointer;">
+            <div id="upload-randomize-section" style="display: none;">
+                <label class="switch-row">
+                    <input type="checkbox" id="upload-randomize-uid">
                     <span>Randomize UID</span>
                 </label>
             </div>
 
-            <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                <button id="upload-cancel-btn" style="background-color: #6c757d;">Cancel</button>
+            <div class="modal-buttons">
+                <button id="upload-cancel-btn" class="btn-secondary">Cancel</button>
                 <button id="upload-confirm-btn">Write</button>
                 <button id="upload-emulate-btn" class="emulate-button">Emulate</button>
             </div>
 
-            <div id="upload-modal-status" style="margin-top: 15px; padding: 10px; border-radius: 4px; display: none;"></div>
+            <div id="upload-modal-status" class="inline-status"></div>
         </div>
     </div>
 
     <!-- Save Collection Modal -->
     <div id="saveCollectionModal" class="modal">
-        <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-content" style="max-width: 520px;">
             <span class="close-button" id="save-collection-close-button">&times;</span>
-            <h3>Save Collection</h3>
+            <h3>Save collection</h3>
 
-            <div class="form-group">
-                <label for="collection-name-input">Collection Name</label>
-                <input type="text" id="collection-name-input" placeholder="Enter collection name" maxlength="50">
-            </div>
+            <div>
+                <div class="form-group">
+                    <label for="collection-name-input">Collection name</label>
+                    <input type="text" id="collection-name-input" placeholder="e.g. Smash mains" maxlength="50">
+                </div>
 
-            <div class="form-group">
-                <label for="collection-description-input">Description (optional)</label>
-                <textarea id="collection-description-input" placeholder="Enter a description for this collection" maxlength="200"></textarea>
+                <div class="form-group" style="margin: 0;">
+                    <label for="collection-description-input">Description (optional)</label>
+                    <textarea id="collection-description-input" placeholder="What's in this collection?" maxlength="200"></textarea>
+                </div>
             </div>
 
             <div class="modal-buttons">
-                <button id="save-collection-cancel-btn" style="background-color: #6c757d;">Cancel</button>
+                <button id="save-collection-cancel-btn" class="btn-secondary">Cancel</button>
                 <button id="save-collection-confirm-btn">Save</button>
             </div>
         </div>
@@ -772,19 +1548,21 @@
     <div id="loadCollectionModal" class="modal">
         <div class="modal-content" style="max-width: 600px;">
             <span class="close-button" id="load-collection-close-button">&times;</span>
-            <h3>Load Collection</h3>
+            <h3>Load collection</h3>
 
-            <div class="collections-list" id="collections-list">
-                <!-- Collections will be dynamically added here -->
-            </div>
+            <div>
+                <div class="collections-list" id="collections-list">
+                    <!-- Collections will be dynamically added here -->
+                </div>
 
-            <div class="checkbox-group">
-                <input type="checkbox" id="clear-unused-slots-checkbox" checked>
-                <label for="clear-unused-slots-checkbox">Clear unused slots (if collection has fewer than 8 amiibo)</label>
+                <label class="checkbox-group">
+                    <input type="checkbox" id="clear-unused-slots-checkbox" checked>
+                    <span>Clear unused slots (if the collection has fewer than 8 amiibo)</span>
+                </label>
             </div>
 
             <div class="modal-buttons">
-                <button id="load-collection-cancel-btn" style="background-color: #6c757d;">Cancel</button>
+                <button id="load-collection-cancel-btn" class="btn-secondary">Cancel</button>
                 <button id="load-collection-write-btn" disabled>Write</button>
                 <button id="load-collection-emulate-btn" class="emulate-button" disabled>Emulate</button>
             </div>
@@ -793,14 +1571,15 @@
 
     <!-- Delete Collection Confirmation Modal -->
     <div id="deleteCollectionModal" class="modal">
-        <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-content" style="max-width: 420px;">
             <span class="close-button" id="delete-collection-close-button">&times;</span>
-            <h3>Delete Collection</h3>
-            <p>Are you sure you want to delete <strong id="delete-collection-name">this collection</strong>?</p>
-            <p style="color: #666; font-size: 0.9em;">This action cannot be undone.</p>
+            <div>
+                <h3>Delete collection</h3>
+                <p class="modal-note">Delete <strong id="delete-collection-name">this collection</strong>? This cannot be undone.</p>
+            </div>
             <div class="modal-buttons">
-                <button id="delete-collection-cancel-btn" style="background-color: #6c757d;">Cancel</button>
-                <button id="delete-collection-confirm-btn" style="background-color: #dc3545;">Delete</button>
+                <button id="delete-collection-cancel-btn" class="btn-secondary">Cancel</button>
+                <button id="delete-collection-confirm-btn" class="btn-danger">Delete</button>
             </div>
         </div>
     </div>
@@ -809,10 +1588,10 @@
     <div id="generateModal" class="modal">
         <div class="modal-content">
             <span class="close-button" id="generate-close-button">&times;</span>
-            <h3>Generate Amiibo for <span id="generate-slot-name">Slot X</span></h3>
+            <h3>Generate amiibo for <span id="generate-slot-name">Slot X</span></h3>
 
             <!-- Tab Navigation -->
-            <div class="generate-tabs" style="margin-bottom: 20px;">
+            <div class="generate-tabs">
                 <button class="tab-btn active" data-tab="recent">⏱️ Recent</button>
                 <button class="tab-btn" data-tab="favorites">⭐ Favorites</button>
                 <button class="tab-btn" data-tab="search">🔍 Search</button>
@@ -820,108 +1599,100 @@
 
             <!-- Recent Tab Content -->
             <div id="recent-tab" class="tab-content active">
-                <div id="recent-amiibos-container" style="display: flex; gap: 10px; overflow-x: auto; padding: 4px 0 10px 0; min-height: 120px; align-items: flex-start;">
-                    <div style="text-align: center; color: #999; width: 100%; padding: 40px 0;">No recent amiibos</div>
+                <div id="recent-amiibos-container" class="card-strip">
+                    <div class="empty-state">No recent amiibos</div>
                 </div>
             </div>
 
             <!-- Favorites Tab Content -->
             <div id="favorites-tab" class="tab-content">
-                <div id="favorites-amiibos-container" style="display: flex; gap: 10px; overflow-x: auto; padding: 4px 0 10px 0; min-height: 120px; align-items: flex-start;">
-                    <div style="text-align: center; color: #999; width: 100%; padding: 40px 0;">No favorite amiibos</div>
+                <div id="favorites-amiibos-container" class="card-strip">
+                    <div class="empty-state">No favorite amiibos</div>
                 </div>
             </div>
 
             <!-- Search Tab Content -->
             <div id="search-tab" class="tab-content">
-                <!-- Search Section -->
-            <div style="margin-bottom: 20px;">
-                <input type="text" id="amiibo-search" placeholder="Search for amiibo by name..."
-                       style="width: 100%; margin-bottom: 10px; box-sizing: border-box;">
+                <div>
+                    <input type="text" id="amiibo-search" placeholder="Search amiibo by name…">
 
-                <!-- Filters and Sort -->
-                <div style="display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 150px;">
-                        <label style="font-size: 0.9em; color: #666;">Game Series:</label>
-                        <select id="game-series-filter" style="width: 100%; padding: 5px; box-sizing: border-box;">
-                            <option value="">All Game Series</option>
-                        </select>
+                    <div class="search-filters">
+                        <div class="filter">
+                            <label for="game-series-filter">Game series</label>
+                            <select id="game-series-filter">
+                                <option value="">All game series</option>
+                            </select>
+                        </div>
+                        <div class="filter" style="flex: 0 1 150px;">
+                            <label for="sort-option">Sort by</label>
+                            <select id="sort-option">
+                                <option value="newest">Newest first</option>
+                                <option value="oldest">Oldest first</option>
+                            </select>
+                        </div>
+                        <button id="clear-filters-btn" class="btn-secondary btn-sm">Clear</button>
                     </div>
-                    <div style="flex: 1; min-width: 120px;">
-                        <label style="font-size: 0.9em; color: #666;">Sort by:</label>
-                        <select id="sort-option" style="width: 100%; padding: 5px; box-sizing: border-box;">
-                            <option value="newest">Newest First</option>
-                            <option value="oldest">Oldest First</option>
-                        </select>
-                    </div>
-                    <div style="display: flex; align-items: end;">
-                        <button id="clear-filters-btn" style="padding: 5px 10px; background-color: #6c757d;">Clear</button>
+
+                    <div id="results-info"></div>
+                    <div id="amiibo-search-results">
+                        <!-- Search results will be populated here -->
                     </div>
                 </div>
 
-                <div id="results-info" style="font-size: 0.9em; color: #666; margin-bottom: 5px; display: none;"></div>
-                <div id="amiibo-search-results" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; display: none;">
-                    <!-- Search results will be populated here -->
-                </div>
-            </div>
-
-            <!-- Selected Amiibo Section -->
-            <div id="selected-amiibo-section" style="display: none;">
-                <h4>Selected Amiibo</h4>
-                <div style="display: flex; align-items: center; gap: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 15px;">
-                    <img id="selected-amiibo-image" src="" alt="" style="width: 60px; height: 60px; object-fit: cover;">
-                    <div style="flex: 1;">
-                        <div style="font-weight: bold;" id="selected-amiibo-name"></div>
-                        <div style="color: #666; font-size: 0.9em;" id="selected-amiibo-series"></div>
-                        <div style="color: #888; font-size: 0.8em;" id="selected-amiibo-id"></div>
+                <!-- Selected Amiibo Section -->
+                <div id="selected-amiibo-section" style="display: none; margin-top: 18px;">
+                    <h4>Selected amiibo</h4>
+                    <div class="selected-amiibo-row">
+                        <img id="selected-amiibo-image" src="" alt="">
+                        <div class="meta">
+                            <div class="name" id="selected-amiibo-name"></div>
+                            <div class="series" id="selected-amiibo-series"></div>
+                            <div class="id" id="selected-amiibo-id"></div>
+                        </div>
+                        <label class="fav-toggle" for="favorite-checkbox">
+                            <input type="checkbox" id="favorite-checkbox">
+                            <span>⭐ Favorite</span>
+                        </label>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <input type="checkbox" id="favorite-checkbox" style="cursor: pointer;">
-                        <label for="favorite-checkbox" style="cursor: pointer; font-size: 14px;">⭐ Favorite</label>
-                    </div>
-                </div>
 
-                <!-- Action Buttons -->
-                <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                    <button id="generate-cancel-btn" style="background-color: #6c757d;">Cancel</button>
-                    <button id="generate-write-btn">Write</button>
-                    <button id="generate-emulate-btn" class="emulate-button">Emulate</button>
+                    <div class="modal-buttons">
+                        <button id="generate-cancel-btn" class="btn-secondary">Cancel</button>
+                        <button id="generate-write-btn">Write</button>
+                        <button id="generate-emulate-btn" class="emulate-button">Emulate</button>
+                    </div>
                 </div>
             </div>
-            <!-- End Search Tab Content -->
-            </div>
-
         </div>
     </div>
 
     <!-- Download Modal -->
     <div id="downloadModal" class="modal">
-        <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-content" style="max-width: 420px;">
             <span class="close-button" id="download-close-button">&times;</span>
-            <h3>Download Amiibo</h3>
-            <p>Download <strong id="download-slot-name">Slot X</strong> as a .bin file?</p>
-            <p style="color: #666; font-size: 0.9em;">This feature is not yet implemented. The download would export the tag data as a .bin file compatible with other Amiibo tools.</p>
-            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-                <button id="download-cancel-btn" style="background-color: #6c757d;">Cancel</button>
-                <button id="download-confirm-btn" disabled style="background-color: #ccc;">Download (Coming Soon)</button>
+            <div>
+                <h3>Download amiibo</h3>
+                <p class="modal-note">Export <strong id="download-slot-name">Slot X</strong> as a .bin file. This feature isn't implemented yet.</p>
+            </div>
+            <div class="modal-buttons">
+                <button id="download-cancel-btn" class="btn-secondary">Cancel</button>
+                <button id="download-confirm-btn" disabled>Download (coming soon)</button>
             </div>
         </div>
     </div>
 
     <!-- Upload Progress Modal -->
     <div id="uploadProgressModal" class="modal">
-        <div class="modal-content" style="max-width: 500px; text-align: center;">
-            <h3 id="upload-progress-title">Processing...</h3>
-            <div id="upload-progress-message" style="margin: 20px 0; font-size: 1.1em;">
-                Preparing upload...
-            </div>
-            <div style="width: 100%; background-color: #f0f0f0; border-radius: 20px; margin: 20px 0;">
-                <div id="upload-progress-bar" style="width: 0%; height: 30px; background: linear-gradient(90deg, #007bff, #28a745); border-radius: 20px; transition: width 0.3s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
-                    <span id="upload-progress-percent">0%</span>
+        <div class="modal-content" style="max-width: 460px;">
+            <h3 id="upload-progress-title">Processing…</h3>
+            <div id="upload-progress-message" class="muted">Preparing upload…</div>
+            <div>
+                <div class="progress-track">
+                    <div id="upload-progress-bar" class="progress-fill"></div>
                 </div>
-            </div>
-            <div id="upload-details" style="color: #666; font-size: 0.9em; margin-top: 10px;">
-                <!-- Details about current step will appear here -->
+                <div style="display: flex; justify-content: space-between; margin-top: 8px;">
+                    <span id="upload-details" class="tiny muted"></span>
+                    <span id="upload-progress-percent" class="progress-percent tiny">0%</span>
+                </div>
             </div>
         </div>
     </div>
@@ -931,7 +1702,34 @@
         // GATT operation mutex to prevent concurrent operations
         let gattMutex = Promise.resolve();
 
+        // Theme toggle (light / dark, persisted; defaults to the OS preference)
+        (function initTheme() {
+            const root = document.documentElement;
+            const toggle = document.getElementById('theme-toggle');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+            const currentTheme = () =>
+                root.getAttribute('data-theme') || (prefersDark.matches ? 'dark' : 'light');
+
+            const syncLabel = () => {
+                const isDark = currentTheme() === 'dark';
+                toggle.textContent = isDark ? '☀' : '☾';
+                toggle.title = isDark ? 'Switch to light theme' : 'Switch to dark theme';
+            };
+
+            toggle.addEventListener('click', () => {
+                const next = currentTheme() === 'dark' ? 'light' : 'dark';
+                root.setAttribute('data-theme', next);
+                try { localStorage.setItem('theme', next); } catch (e) { /* storage unavailable */ }
+                syncLabel();
+            });
+
+            prefersDark.addEventListener('change', syncLabel);
+            syncLabel();
+        })();
+
         const connectBtn = document.getElementById('connect-btn');
+        const welcomePanel = document.getElementById('welcome-panel');
         const refreshSlotsBtn = document.getElementById('refresh-slots-btn');
         const batteryStatus = document.getElementById('battery-status');
         const batteryIcon = document.getElementById('battery-icon');
@@ -1195,77 +1993,27 @@
             const container = document.getElementById('notification-container');
 
             // Create notification element
+            const icons = { success: '✓', error: '✕', warning: '!', info: 'i' };
+            const kind = icons[type] ? type : 'info';
+
             const notification = document.createElement('div');
-            notification.style.cssText = `
-                padding: 15px 20px;
-                margin-bottom: 10px;
-                border-radius: 8px;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                opacity: 0;
-                transform: translateX(100%);
-                transition: opacity 0.3s ease, transform 0.3s ease;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                font-size: 14px;
-                line-height: 1.4;
-            `;
-
-            // Set colors based on type
-            let icon = '';
-            if (type === 'success') {
-                notification.style.backgroundColor = '#d4edda';
-                notification.style.color = '#155724';
-                notification.style.border = '1px solid #c3e6cb';
-                icon = '✓';
-            } else if (type === 'error') {
-                notification.style.backgroundColor = '#f8d7da';
-                notification.style.color = '#721c24';
-                notification.style.border = '1px solid #f5c6cb';
-                icon = '✕';
-            } else if (type === 'warning') {
-                notification.style.backgroundColor = '#fff3cd';
-                notification.style.color = '#856404';
-                notification.style.border = '1px solid #ffeeba';
-                icon = '⚠';
-            } else {
-                notification.style.backgroundColor = '#d1ecf1';
-                notification.style.color = '#0c5460';
-                notification.style.border = '1px solid #bee5eb';
-                icon = 'ℹ';
-            }
-
-            // Add content
+            notification.className = `toast toast-${kind}`;
             notification.innerHTML = `
-                <div style="font-size: 18px; font-weight: bold;">${icon}</div>
-                <div style="flex: 1;">${message}</div>
-                <button onclick="this.parentElement.remove()" style="
-                    background: none;
-                    border: none;
-                    color: inherit;
-                    font-size: 18px;
-                    cursor: pointer;
-                    padding: 0;
-                    margin-left: 10px;
-                    opacity: 0.6;
-                    transition: opacity 0.2s;
-                " onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">×</button>
+                <div class="toast-icon">${icons[kind]}</div>
+                <div class="toast-body">${message}</div>
+                <button class="toast-close" aria-label="Dismiss" onclick="this.parentElement.remove()">×</button>
             `;
 
             // Add to container
             container.appendChild(notification);
 
             // Animate in
-            setTimeout(() => {
-                notification.style.opacity = '1';
-                notification.style.transform = 'translateX(0)';
-            }, 10);
+            requestAnimationFrame(() => notification.classList.add('show'));
 
             // Auto-remove after duration
             if (duration > 0) {
                 setTimeout(() => {
-                    notification.style.opacity = '0';
-                    notification.style.transform = 'translateX(100%)';
+                    notification.classList.remove('show');
                     setTimeout(() => notification.remove(), 300);
                 }, duration);
             }
@@ -1292,16 +2040,12 @@
         // Update key status UI and refresh slot cards to show/hide generation links
         async function updateKeyStatus() {
             if (keysLoaded && maboiiKeys) {
-                keyStatus.style.backgroundColor = '#d4edda';
-                keyStatus.style.color = '#155724';
-                keyStatus.style.borderColor = '#c3e6cb';
-                keyStatus.textContent = 'Keys loaded - ready to generate amiibo files ✓';
-                clearKeysBtn.style.display = 'inline-block';
+                keyStatus.className = 'pill pill-success';
+                keyStatus.textContent = 'Keys loaded';
+                clearKeysBtn.style.display = 'inline-flex';
             } else {
-                keyStatus.style.backgroundColor = '#f8d7da';
-                keyStatus.style.color = '#721c24';
-                keyStatus.style.borderColor = '#f5c6cb';
-                keyStatus.textContent = 'Upload retail keys to generate amiibo files';
+                keyStatus.className = 'pill';
+                keyStatus.textContent = 'No keys loaded';
                 clearKeysBtn.style.display = 'none';
             }
 
@@ -1387,20 +2131,17 @@
             // Update icon based on percentage
             if (percentage <= 20) {
                 batteryIcon.textContent = '🪫'; // Low battery
-                batteryStatus.style.borderColor = '#dc3545';
-                batteryStatus.style.background = 'rgba(255,240,240,0.9)';
+                batteryStatus.className = 'battery-low';
             } else if (percentage <= 50) {
                 batteryIcon.textContent = '🔋'; // Medium battery
-                batteryStatus.style.borderColor = '#ffc107';
-                batteryStatus.style.background = 'rgba(255,252,240,0.9)';
+                batteryStatus.className = 'battery-medium';
             } else {
                 batteryIcon.textContent = '🔋'; // Good battery
-                batteryStatus.style.borderColor = '#28a745';
-                batteryStatus.style.background = 'rgba(240,255,240,0.9)';
+                batteryStatus.className = 'battery-good';
             }
 
             batteryStatus.title = `Battery: ${percentage}% (${voltage}mV)`;
-            batteryStatus.style.display = 'block';
+            batteryStatus.style.display = 'inline-flex';
         }
 
         function hideBatteryDisplay() {
@@ -1432,9 +2173,10 @@
 
         function onDisconnected() {
             console.log('Device disconnected');
-            connectBtn.textContent = 'Connect';
+            connectBtn.textContent = 'Connect device';
             connectBtn.disabled = false;
             refreshSlotsBtn.style.display = 'none';
+            welcomePanel.style.display = 'block';
             hideBatteryDisplay();
             amiiboSlotsDiv.style.display = 'none';
             statusSection.style.display = 'none';
@@ -1838,23 +2580,10 @@
         }
 
         function setUploadModalStatus(message, type = 'info') {
-            uploadModalStatus.style.display = 'block';
             uploadModalStatus.textContent = message;
-            uploadModalStatus.className = '';
-
-            if (type === 'success') {
-                uploadModalStatus.style.backgroundColor = '#d4edda';
-                uploadModalStatus.style.color = '#155724';
-                uploadModalStatus.style.borderColor = '#c3e6cb';
-            } else if (type === 'error') {
-                uploadModalStatus.style.backgroundColor = '#f8d7da';
-                uploadModalStatus.style.color = '#721c24';
-                uploadModalStatus.style.borderColor = '#f5c6cb';
-            } else {
-                uploadModalStatus.style.backgroundColor = '#d1ecf1';
-                uploadModalStatus.style.color = '#0c5460';
-                uploadModalStatus.style.borderColor = '#bee5eb';
-            }
+            const kind = (type === 'success' || type === 'error') ? type : 'info';
+            uploadModalStatus.className = `inline-status is-${kind}`;
+            uploadModalStatus.style.display = 'block';
         }
 
         // Upload with optional UID randomization
@@ -2111,7 +2840,7 @@
             container.innerHTML = '';
 
             if (recentAmiibos.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: #999; width: 100%; padding: 40px 0;">No recent amiibos</div>';
+                container.innerHTML = '<div class="empty-state">No recent amiibos<small>Amiibo you generate show up here</small></div>';
                 return;
             }
 
@@ -2310,7 +3039,7 @@
             container.innerHTML = '';
 
             if (favoriteAmiibos.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: #999; width: 100%; padding: 40px 0;">No favorite amiibos<br><small>Star amiibos to add them to favorites</small></div>';
+                container.innerHTML = '<div class="empty-state">No favorite amiibos<small>Star an amiibo to add it here</small></div>';
                 return;
             }
 
@@ -2321,7 +3050,7 @@
                 card.innerHTML = `
                     <img src="${amiibo.image}" alt="${amiibo.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'60\' height=\'60\' fill=\'%23ccc\'><rect width=\'60\' height=\'60\' fill=\'%23f0f0f0\'/><text x=\'50%\' y=\'50%\' text-anchor=\'middle\' dy=\'.3em\' fill=\'%23999\' font-family=\'sans-serif\' font-size=\'10\'>No Image</text></svg>'">
                     <div class="name">${amiibo.name}</div>
-                    <div style="position: absolute; top: 5px; right: 5px; color: #ffc107; font-size: 12px;">⭐</div>
+                    <div class="card-star">⭐</div>
                 `;
 
                 // Card click handler
@@ -3065,9 +3794,9 @@
             slotSummary.className = 'slot-summary';
 
             if (isEmpty) {
-                slotSummary.textContent = 'Empty slot - Import a .bin/.nfc file or generate to add an Amiibo';
+                slotSummary.textContent = 'Empty — upload a .bin/.nfc dump or generate an amiibo.';
             } else {
-                slotSummary.textContent = `${slotName} (Click to emulate)${isActive ? ' (Currently Selected)' : ''}`;
+                slotSummary.textContent = `${slotName}${isActive ? ' · currently active' : ''}`;
             }
 
             slotCard.appendChild(slotTitle);
@@ -3404,22 +4133,7 @@
                     const amiiboInfo = await getSlotAmiiboInfo(slotIndex);
                     if (amiiboInfo && amiiboInfo.name && summaryElement) {
                         // Update with rich Amiibo information
-                        summaryElement.innerHTML = `
-                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                <img src="${amiiboInfo.image}" alt="${amiiboInfo.name}"
-                                     style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; background: #f0f0f0;">
-                                <div style="flex: 1;">
-                                    <div style="font-weight: bold; color: #333;">${amiiboInfo.name}</div>
-                                    <div style="font-size: 0.85em; color: #666;">${amiiboInfo.amiiboSeries}</div>
-                                </div>
-                            </div>
-                            <div style="font-size: 0.8em; color: #888; line-height: 1.3;">
-                                <div><strong>Game Series:</strong> ${amiiboInfo.gameSeries}</div>
-                                <div><strong>Character:</strong> ${amiiboInfo.character}</div>
-                                <div><strong>Release (NA):</strong> ${amiiboInfo.release?.na || 'TBD'}</div>
-                                <div><strong>Amiibo ID:</strong> ${amiiboInfo.extractedId}</div>
-                            </div>
-                        `;
+                        summaryElement.innerHTML = amiiboSummaryHtml(amiiboInfo, false);
                         // ID is already displayed on card, no need to store separately
                         console.log(`✅ Updated uploaded slot ${slotIndex + 1} with Amiibo info: ${amiiboInfo.name} (ID: ${amiiboInfo.extractedId})`);
                     }
@@ -3515,26 +4229,29 @@
             }
         }
 
-        function updateSlotCardDisplay(slotCard, slotSummary, amiiboInfo, slotIndex) {
-            const isActive = slotCard.classList.contains('slot-selected');
-            const statusText = isActive ? ' (Currently Selected)' : '';
-
-            slotSummary.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                    <img src="${amiiboInfo.image}" alt="${amiiboInfo.name}"
-                         style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; background: #f0f0f0;">
-                    <div style="flex: 1;">
-                        <div style="font-weight: bold; color: #333;">${amiiboInfo.name}${statusText}</div>
-                        <div style="font-size: 0.85em; color: #666;">${amiiboInfo.amiiboSeries}</div>
+        // Shared markup for the rich amiibo summary shown inside a slot card
+        function amiiboSummaryHtml(amiiboInfo, isActive) {
+            const badge = isActive ? '<span class="badge-active">Active</span>' : '';
+            return `
+                <div class="amiibo-line">
+                    <img src="${amiiboInfo.image}" alt="${amiiboInfo.name}">
+                    <div style="min-width: 0;">
+                        <div class="amiibo-line-name">${amiiboInfo.name}${badge}</div>
+                        <div class="amiibo-line-series">${amiiboInfo.amiiboSeries}</div>
                     </div>
                 </div>
-                <div style="font-size: 0.8em; color: #888; line-height: 1.3;">
-                    <div><strong>Game Series:</strong> ${amiiboInfo.gameSeries}</div>
-                    <div><strong>Character:</strong> ${amiiboInfo.character}</div>
-                    <div><strong>Release (NA):</strong> ${amiiboInfo.release?.na || 'TBD'}</div>
-                    <div><strong>Amiibo ID:</strong> ${amiiboInfo.extractedId || amiiboInfo.id || 'Unknown'}</div>
-                </div>
+                <dl class="amiibo-meta">
+                    <dt>Game</dt><dd>${amiiboInfo.gameSeries}</dd>
+                    <dt>Character</dt><dd>${amiiboInfo.character}</dd>
+                    <dt>Release</dt><dd>${amiiboInfo.release?.na || 'TBD'}</dd>
+                    <dt>ID</dt><dd>${amiiboInfo.extractedId || amiiboInfo.id || 'Unknown'}</dd>
+                </dl>
             `;
+        }
+
+        function updateSlotCardDisplay(slotCard, slotSummary, amiiboInfo, slotIndex) {
+            const isActive = slotCard.classList.contains('slot-selected');
+            slotSummary.innerHTML = amiiboSummaryHtml(amiiboInfo, isActive);
         }
 
         async function enhanceSingleSlotWithAmiiboInfo(slotIndex) {
@@ -3629,25 +4346,9 @@
                     if (amiiboInfo && amiiboInfo.name && summaryElement) {
                         // Use the original active slot to determine status (not current, since we're switching slots)
                         const isCurrentlyActive = (i === originalActiveSlot);
-                        const statusText = isCurrentlyActive ? ' (Currently Selected)' : '';
 
                         // Update with rich Amiibo information
-                        summaryElement.innerHTML = `
-                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                <img src="${amiiboInfo.image}" alt="${amiiboInfo.name}"
-                                     style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; background: #f0f0f0;">
-                                <div style="flex: 1;">
-                                    <div style="font-weight: bold; color: #333;">${amiiboInfo.name}${statusText}</div>
-                                    <div style="font-size: 0.85em; color: #666;">${amiiboInfo.amiiboSeries}</div>
-                                </div>
-                            </div>
-                            <div style="font-size: 0.8em; color: #888; line-height: 1.3;">
-                                <div><strong>Game Series:</strong> ${amiiboInfo.gameSeries}</div>
-                                <div><strong>Character:</strong> ${amiiboInfo.character}</div>
-                                <div><strong>Release (NA):</strong> ${amiiboInfo.release?.na || 'TBD'}</div>
-                                <div><strong>Amiibo ID:</strong> ${amiiboInfo.extractedId}</div>
-                            </div>
-                        `;
+                        summaryElement.innerHTML = amiiboSummaryHtml(amiiboInfo, isCurrentlyActive);
                         // ID is already displayed on card, no need to store separately
                         console.log(`✅ Enhanced slot ${i + 1} with rich Amiibo info: ${amiiboInfo.name} (ID: ${amiiboInfo.extractedId})`);
                     }
@@ -3818,6 +4519,12 @@
         }
 
 
+        // Welcome panel: mirror the header connect button and flag unsupported browsers
+        document.getElementById('welcome-connect-btn').addEventListener('click', () => connectBtn.click());
+        if (!navigator.bluetooth) {
+            document.getElementById('ble-unsupported').style.display = 'block';
+        }
+
         connectBtn.addEventListener('click', async () => {
             try {
                 showUploadProgress('Connecting to Chameleon Ultra...', 20, 'Searching for Bluetooth device', 'Device Setup');
@@ -3825,9 +4532,10 @@
                 await ultra.connect();
 
                 updateUploadProgress('Connected!', 100, 'Device connected successfully');
-                connectBtn.textContent = 'Connected';
+                connectBtn.textContent = '● Connected';
                 connectBtn.disabled = true;
-                refreshSlotsBtn.style.display = 'inline-block';
+                refreshSlotsBtn.style.display = 'inline-flex';
+                welcomePanel.style.display = 'none';
 
                 // Close progress modal immediately and show success
                 setTimeout(() => {
@@ -4659,27 +5367,14 @@
             resultsInfo.style.display = 'block';
 
             if (amiibos.length === 0) {
-                resultsDiv.innerHTML = '<div style="padding: 10px; text-align: center; color: #666;">No amiibos found</div>';
+                resultsDiv.innerHTML = '<div class="empty-state" style="padding: 20px 12px;">No amiibos found</div>';
                 resultsDiv.style.display = 'block';
                 return;
             }
 
             amiibos.forEach(amiibo => {
                 const resultItem = document.createElement('div');
-                resultItem.style.cssText = `
-                    display: flex;
-                    align-items: center;
-                    padding: 10px;
-                    border-bottom: 1px solid #eee;
-                    cursor: pointer;
-                    transition: background-color 0.2s;
-                `;
-                resultItem.addEventListener('mouseenter', () => {
-                    resultItem.style.backgroundColor = '#f5f5f5';
-                });
-                resultItem.addEventListener('mouseleave', () => {
-                    resultItem.style.backgroundColor = 'white';
-                });
+                resultItem.className = 'result-item';
                 resultItem.addEventListener('click', () => {
                     selectAmiiboForGeneration(amiibo);
                 });
@@ -4695,15 +5390,13 @@
                 }
 
                 resultItem.innerHTML = `
-                    <img src="${amiibo.image}" alt="${amiibo.name}"
-                         style="width: 50px; height: 50px; object-fit: cover; margin-right: 12px; border-radius: 4px;">
-                    <div style="flex: 1;">
-                        <div style="font-weight: bold; margin-bottom: 2px;">${amiibo.name}</div>
-                        <div style="color: #666; font-size: 0.9em; margin-bottom: 1px;">${amiibo.amiiboSeries}</div>
-                        <div style="color: #888; font-size: 0.85em; margin-bottom: 1px;">${amiibo.gameSeries}</div>
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="color: #999; font-size: 0.8em; font-family: monospace;">${getAmiiboId(amiibo)}</div>
-                            ${releaseInfo ? `<div style="color: #007bff; font-size: 0.8em;">${releaseInfo}</div>` : ''}
+                    <img src="${amiibo.image}" alt="${amiibo.name}">
+                    <div class="result-body">
+                        <div class="result-name">${amiibo.name}</div>
+                        <div class="result-sub">${amiibo.amiiboSeries} · ${amiibo.gameSeries}</div>
+                        <div class="result-foot">
+                            <span class="result-id">${getAmiiboId(amiibo)}</span>
+                            ${releaseInfo ? `<span class="result-release">${releaseInfo}</span>` : ''}
                         </div>
                     </div>
                 `;
@@ -5075,7 +5768,7 @@
             listContainer.innerHTML = '';
 
             if (collections.length === 0) {
-                listContainer.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">No saved collections</p>';
+                listContainer.innerHTML = '<div class="empty-state">No saved collections<small>Save your current slot line-up to create one</small></div>';
                 document.getElementById('load-collection-write-btn').disabled = true;
                 document.getElementById('load-collection-emulate-btn').disabled = true;
                 return;
@@ -5092,7 +5785,7 @@
                         ${collection.description ? `<div class="collection-description">${escapeHtml(collection.description)}</div>` : ''}
                         <div class="collection-count">${collection.amiibos.length} amiibo</div>
                     </div>
-                    <button class="collection-delete" onclick="event.stopPropagation(); showDeleteCollectionModal('${collection.id}')">Delete</button>
+                    <button class="collection-delete" onclick="event.stopPropagation(); showDeleteCollectionModal('${collection.id}')">Remove</button>
                 `;
 
                 item.addEventListener('click', () => {
