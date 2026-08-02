@@ -1904,6 +1904,7 @@
         const CMD_GET_SLOT_TAG_NICK = 1008;
 
         const TagType = { NTAG_215: 1101 };
+        const ACTIVE_SLOT_SUFFIX = ' · currently active';
         const TagFrequency = { HF: 2 }; // HF frequency value
 
         let ultra = null;
@@ -2515,19 +2516,10 @@
 
         randomizeWriteBtn.addEventListener('click', async () => {
             if (randomizeTargetSlot !== null) {
-                const slotCard = document.querySelector(`[data-slot-index="${randomizeTargetSlot}"]`);
-                let amiiboId = null;
-                if (slotCard) {
-                    const slotSummary = slotCard.querySelector('.slot-summary');
-                    if (slotSummary) {
-                        const match = slotSummary.innerHTML.match(/Amiibo ID:<\/strong>\s*([A-F0-9]{16})/i);
-                        if (match) {
-                            amiiboId = match[1];
-                        }
-                    }
-                }
+                const slotIndex = randomizeTargetSlot;
+                const slotName = randomizeTargetName;
                 closeRandomizeModal();
-                await randomizeSlotUID(randomizeTargetSlot, randomizeTargetName, amiiboId);
+                await randomizeSlotUID(slotIndex, slotName);
             }
         });
 
@@ -2703,7 +2695,70 @@
             }
         }
 
-        // Randomize UID function - generates fresh amiibo with same ID from card display
+        // Read the amiibo ID (NTAG pages 21-22) straight off a device slot.
+        // Restores the previously active slot so that reading doesn't change what the device emulates.
+        async function readSlotAmiiboId(slotIndex) {
+            if (!ultra || !ultra.device || !ultra.device.gatt.connected) {
+                return null;
+            }
+
+            let previousActiveSlot = null;
+            try {
+                previousActiveSlot = await ultra.getActiveSlot();
+            } catch (error) {
+                debugLog('Could not read active slot before reading amiibo ID:', error.message);
+            }
+
+            try {
+                await ultra.sendCommand(CMD_SET_ACTIVE_SLOT, new Uint8Array([slotIndex]));
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                const pageData = await ultra.readNtagPages(21, 2); // 2 pages = 8 bytes
+                if (pageData.length < 8) {
+                    debugLog(`Slot ${slotIndex + 1} returned ${pageData.length} bytes, expected 8`);
+                    return null;
+                }
+
+                const amiiboId = Array.from(pageData)
+                    .map(b => b.toString(16).padStart(2, '0'))
+                    .join('')
+                    .toUpperCase();
+
+                if (amiiboId === '0000000000000000' || amiiboId === 'FFFFFFFFFFFFFFFF') {
+                    debugLog(`Slot ${slotIndex + 1} has empty/default Amiibo ID`);
+                    return null;
+                }
+
+                return amiiboId;
+            } catch (error) {
+                debugLog(`Could not read amiibo ID from slot ${slotIndex + 1}:`, error.message);
+                return null;
+            } finally {
+                if (previousActiveSlot !== null && previousActiveSlot !== slotIndex) {
+                    try {
+                        await ultra.sendCommand(CMD_SET_ACTIVE_SLOT, new Uint8Array([previousActiveSlot]));
+                    } catch (error) {
+                        debugLog(`Could not restore active slot ${previousActiveSlot}:`, error.message);
+                    }
+                }
+            }
+        }
+
+        // Resolve a slot's amiibo ID: read the device first, fall back to the cached value
+        async function resolveSlotAmiiboId(slotIndex) {
+            const fromDevice = await readSlotAmiiboId(slotIndex);
+            if (fromDevice) return fromDevice;
+
+            const cached = getCachedSlotData(slotIndex);
+            if (cached && cached.amiiboId) {
+                debugLog(`Using cached amiibo ID for slot ${slotIndex + 1}: ${cached.amiiboId}`);
+                return cached.amiiboId;
+            }
+
+            return null;
+        }
+
+        // Randomize UID function - generates fresh amiibo with the same ID as the one already in the slot
         async function randomizeSlotUID(slotIndex, slotName, amiiboId = null) {
             try {
                 // Check if keys are available
@@ -2711,23 +2766,28 @@
                     throw new Error('Retail keys are required for UID randomization');
                 }
 
-                showUploadProgress(`Randomizing UID for ${slotName}`, 20, 'Using amiibo ID from card...');
+                showUploadProgress(`Randomizing UID for ${slotName}`, 20, 'Reading amiibo ID from slot...');
 
                 if (!amiiboId) {
-                    throw new Error('Cannot randomize UID: No amiibo ID found on card display');
+                    amiiboId = await resolveSlotAmiiboId(slotIndex);
                 }
 
-                console.log(`Using amiibo ID from card: ${amiiboId}`);
-
-                if (amiiboId === '0000000000000000') {
-                    throw new Error('Cannot randomize UID: Invalid amiibo ID');
+                if (!amiiboId) {
+                    throw new Error('No amiibo data found in this slot');
                 }
+
+                // Remove the '0x' prefix if present and use the ID directly
+                const cleanAmiiboId = amiiboId.replace(/^0x/i, '').toUpperCase();
+
+                if (!/^[0-9A-F]{16}$/.test(cleanAmiiboId) || cleanAmiiboId === '0000000000000000') {
+                    throw new Error(`Invalid amiibo ID in this slot (${amiiboId})`);
+                }
+
+                console.log(`Randomizing UID using amiibo ID: ${cleanAmiiboId}`);
 
                 updateUploadProgress('Generating new amiibo with fresh UID...', 70, 'Creating amiibo with same ID, new UID');
 
                 // Generate fresh amiibo data with same ID but new random UID
-                // Remove the '0x' prefix if present and use the ID directly
-                const cleanAmiiboId = amiiboId.replace(/^0x/i, '');
                 const generatedData = await generateEncryptedAmiiboData(cleanAmiiboId);
 
                 updateUploadProgress('Writing updated amiibo...', 90, 'Writing amiibo with new UID to device');
@@ -3796,7 +3856,7 @@
             if (isEmpty) {
                 slotSummary.textContent = 'Empty — upload a .bin/.nfc dump or generate an amiibo.';
             } else {
-                slotSummary.textContent = `${slotName}${isActive ? ' · currently active' : ''}`;
+                slotSummary.textContent = `${slotName}${isActive ? ACTIVE_SLOT_SUFFIX : ''}`;
             }
 
             slotCard.appendChild(slotTitle);
@@ -3995,62 +4055,49 @@
                 const activateSlotData = new Uint8Array([slotIndex]);
                 await ultra.sendCommand(CMD_SET_ACTIVE_SLOT, activateSlotData);
 
-                // Update visual indicators without full refresh
-                updateSlotSelectionIndicators(slotIndex);
+                // Sync the indicators to the slot the device reports, not the one we asked for
+                const activeSlot = await ultra.getActiveSlot();
+                updateSlotSelectionIndicators(activeSlot);
 
-                setUploadStatus(`Selected slot ${slotIndex + 1}`, 'success');
+                if (activeSlot !== slotIndex) {
+                    throw new Error(`device is still on slot ${activeSlot + 1}`);
+                }
+
+                setUploadStatus(`Slot ${slotIndex + 1} is now active`, 'success');
             } catch (error) {
                 console.error('Error selecting slot:', error);
-                setUploadStatus(`Failed to select slot: ${error.message}`, 'error');
+                setUploadStatus(`Failed to select slot ${slotIndex + 1}: ${error.message}`, 'error');
             }
         }
 
         function updateSlotSelectionIndicators(newActiveSlotIndex) {
-            const slotCards = document.querySelectorAll('.slot');
+            document.querySelectorAll('.slot').forEach(card => {
+                // Match on the slot index the card carries, not its position in the list
+                const slotIndex = parseInt(card.getAttribute('data-slot-index'), 10);
+                if (Number.isNaN(slotIndex)) return;
 
-            slotCards.forEach((card, index) => {
+                const isSelected = (slotIndex === newActiveSlotIndex);
+                card.classList.toggle('slot-selected', isSelected);
+
                 const summaryElement = card.querySelector('.slot-summary');
                 if (!summaryElement) return;
 
-                const isSelected = (index === newActiveSlotIndex);
-
-                // Update card styling
-                if (isSelected) {
-                    card.classList.remove('slot-empty');
-                    card.classList.add('slot-selected');
-                } else {
-                    card.classList.remove('slot-selected');
-                    // Keep other classes as they were
+                // Rich card - move the "Active" badge onto the selected slot
+                const nameElement = summaryElement.querySelector('.amiibo-line-name');
+                if (nameElement) {
+                    const badge = nameElement.querySelector('.badge-active');
+                    if (isSelected && !badge) {
+                        nameElement.insertAdjacentHTML('beforeend', '<span class="badge-active">Active</span>');
+                    } else if (!isSelected && badge) {
+                        badge.remove();
+                    }
+                    return;
                 }
 
-                // Update text content to add/remove "Currently Selected"
-                if (summaryElement.innerHTML.includes('<div')) {
-                    // Rich content (Amiibo info) - update the name line
-                    // Find the name div more specifically - it has font-weight: bold
-                    const nameDiv = summaryElement.querySelector('div[style*="font-weight: bold"]');
-                    if (nameDiv) {
-                        let text = nameDiv.textContent;
-                        // Remove old status
-                        text = text.replace(' (Currently Selected)', '');
-                        // Add new status if selected
-                        if (isSelected) {
-                            text += ' (Currently Selected)';
-                        }
-                        nameDiv.textContent = text;
-                    }
-                } else {
-                    // Simple text content - update directly
-                    let text = summaryElement.textContent;
-                    // Remove old status
-                    text = text.replace(' (Currently Selected)', '');
-                    // Add new status if selected
-                    if (isSelected) {
-                        text += ' (Currently Selected)';
-                    }
-                    summaryElement.textContent = text;
-                }
-
-                // Select buttons always show "Select" text - no need to change it
+                // Plain card (amiibo details not loaded yet) - fall back to a text suffix
+                if (card.classList.contains('slot-empty')) return;
+                const text = summaryElement.textContent.replace(ACTIVE_SLOT_SUFFIX, '');
+                summaryElement.textContent = isSelected ? `${text}${ACTIVE_SLOT_SUFFIX}` : text;
             });
         }
 
